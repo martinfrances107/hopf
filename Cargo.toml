@@ -1,0 +1,20 @@
+[workspace]
+members = [
+  "./lib",
+  "point2ply",
+  "points2Obj",
+]
+resolver = "2"
+default-members = ["./lib"]
+
+[workspace.package]
+authors = ["martin <martinfrances107@hotmail.com>"]
+edition = "2024"
+homepage = "https://github.com/martinfrances107/hopf"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/martinfrances107/hopf"
+rust-version = "1.85"
+
+[workspace.dependencies]
+num-complex = "0.4.6"
