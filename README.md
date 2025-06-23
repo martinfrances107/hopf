@@ -12,9 +12,9 @@ For a point ($\theta$, $\phi$) on the 2-sphere
 
 The circle of the fibre lies on the 3-sphere
 
-The fibre, F($\alpha$) = ($X_0$, $X_1$, $X_4$, $X_4$) ∈ $\reals^4$
+The fibre, F($\alpha$) = ($X_0$, $X_1$, $X_4$, $X_4$) ∈ $R^4$
 
-where $\alpha$ ∈ [0,4$\pi$]
+where $\alpha$ ∈ [0,4π]
 
 Here is the mapping.
 
