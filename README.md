@@ -4,11 +4,13 @@ Contains utilities for visualizing the hopf fibration.
 
 It is toolset used for generating point cloud (.ply ) and OBJ fils (*.obj )
 
-This is currenly a work in progress.
+This is currently a work in progress.
 
 ## The fibre
 
 For a point ($\theta$, $\phi$) on the 2-sphere
+
+The circle of the fibre lies on the 3-sphere
 
 The fibre, F($\alpha$) = ($X_0$, $X_1$, $X_4$, $X_4$) ∈ $\reals^4$
 
