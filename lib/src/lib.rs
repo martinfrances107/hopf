@@ -43,7 +43,7 @@ where
   let len = points.len();
     writeln!(out, "ply")?;
     writeln!(out, "format ascii 1.0")?;
-    writeln!(out, "element vertex {}", len)?;
+    writeln!(out, "element vertex {len}")?;
     writeln!(out, "property float x")?;
     writeln!(out, "property float y")?;
     writeln!(out, "property float z")?;
@@ -78,9 +78,9 @@ where
         let index0 = index;
         for _ in line{
           write!(out, " {index}")?;
-          index = index + 1;
+          index += 1;
         }
-        // Close the loop by append the start to end.
+        // Close the loop by appending the start of the loop to the end.
         writeln!(out, " {index0}")?;
 
     }
