@@ -73,8 +73,10 @@ where
         }
         // out.push_str("g hopf_fibration\n");
         write!(out, "l")?;
+
+        // First point of the loop.
         let index0 = index;
-        for _ in 1..line.len(){
+        for _ in line{
           write!(out, " {index}")?;
           index = index + 1;
         }
