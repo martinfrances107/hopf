@@ -9,19 +9,27 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use num_complex::Complex64;
+use hopf::{fibre::Fibre, generate_ply};
+use std::io::Error;
 
-use hopf::generate_ply;
-
-fn main() {
+fn main() -> Result<(), Error> {
     // TODO Take seed from stdIn.
-    let seed = Complex64::from_polar(1_f64, 45_f64.to_radians());
 
-    let fibre = hopf::fibre::Fibre::new(seed.re, seed.im, 0_f64, 4.0 * std::f64::consts::PI);
+    let fibre = Fibre::new(
+        5.0_f64.to_radians(),
+        5.0_f64.to_radians(),
+        0_f64,
+        4.0 * std::f64::consts::PI,
+    );
 
-    let gen_points = fibre.build(100).map(hopf::project);
+    let points = fibre
+        .build(20, 1_000_u32)
+        .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
-    generate_ply(gen_points)
+    generate_ply(&points)
+        .map_err(|_| Error::other("Fail to write to buffer"))?
         .lines()
         .for_each(|line| println!("{line}"));
+
+    Ok(())
 }

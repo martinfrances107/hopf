@@ -9,26 +9,28 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
+use std::io::Error;
+
 use hopf::generate_obj;
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
     let mut seeds = vec![];
 
     let lat = 10_f64.to_radians();
-    (0..180).step_by(10).for_each(|i| {
+    (0..270).step_by(1).for_each(|i| {
         let lon = (0_f64 + 10_f64 + f64::from(i)).to_radians();
         seeds.push((lat, lon));
     });
 
-    let lat = 30_f64.to_radians();
-    (0..180).step_by(10).for_each(|i| {
+    let lat = 20_f64.to_radians();
+    (0..270).step_by(5).for_each(|i| {
         let lon = (30_f64 + f64::from(i)).to_radians();
         seeds.push((lat, lon));
     });
 
-    let lat = 50_f64.to_radians();
-    (0..180).step_by(10).for_each(|i| {
+    let lat = 30_f64.to_radians();
+    (0..270).step_by(10).for_each(|i| {
         let lon = (60_f64 + 10_f64 + f64::from(i)).to_radians();
         seeds.push((lat, lon));
     });
@@ -36,11 +38,19 @@ fn main() {
     let mut lines = vec![];
     for (lat, lon) in seeds {
         let fibre = hopf::fibre::Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
-        let points = fibre.build(100).map(hopf::project).collect::<Vec<_>>();
+        // let points = fibre.adaptive_build(1000);
+        let points = fibre.build(50,2000_u32).map_err(|_| {
+            std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
+        })?;
+
         lines.push(points);
     }
 
-    generate_obj(&lines)
+    generate_obj(&lines).map_err(|_| {
+      Error::other("buffer failing generating lines.")
+    })?
         .lines()
         .for_each(|line| println!("{line}"));
+
+    Ok(())
 }
