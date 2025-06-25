@@ -9,13 +9,17 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use std::io::Error;
+use std::io::{Error, LineWriter};
 
 use hopf::generate_obj;
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
     let mut seeds = vec![];
+
+    let stdout = std::io::stdout();
+    let handle = stdout.lock();
+    let mut writer = LineWriter::new(handle);
 
     let lat = 10_f64.to_radians();
     (0..270).step_by(1).for_each(|i| {
@@ -39,18 +43,15 @@ fn main() -> Result<(), std::io::Error> {
     for (lat, lon) in seeds {
         let fibre = hopf::fibre::Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
         // let points = fibre.adaptive_build(1000);
-        let points = fibre.build(50,2000_u32).map_err(|_| {
+        let points = fibre.build(40,2000_u32).map_err(|_| {
             std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
         })?;
 
         lines.push(points);
     }
 
-    generate_obj(&lines).map_err(|_| {
-      Error::other("buffer failing generating lines.")
-    })?
-        .lines()
-        .for_each(|line| println!("{line}"));
+    generate_obj(&lines, &mut writer).map_err(|_| {
+      Error::other("Error writing output.")
+    })
 
-    Ok(())
 }

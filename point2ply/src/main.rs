@@ -10,10 +10,14 @@
 #![allow(clippy::many_single_char_names)]
 
 use hopf::{fibre::Fibre, generate_ply};
-use std::io::Error;
+use std::io::{Error, LineWriter};
 
 fn main() -> Result<(), Error> {
     // TODO Take seed from stdIn.
+
+    let stdout = std::io::stdout();
+    let handle = stdout.lock();
+    let mut writer = LineWriter::new(handle);
 
     let fibre = Fibre::new(
         5.0_f64.to_radians(),
@@ -26,10 +30,7 @@ fn main() -> Result<(), Error> {
         .build(20, 1_000_u32)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
-    generate_ply(&points)
-        .map_err(|_| Error::other("Fail to write to buffer"))?
-        .lines()
-        .for_each(|line| println!("{line}"));
+    generate_ply(&points, &mut writer)
+        .map_err(|_| Error::other("Fail to write to buffer"))
 
-    Ok(())
 }

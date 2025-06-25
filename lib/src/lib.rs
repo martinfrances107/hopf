@@ -9,13 +9,13 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use core::fmt::Error;
-use std::fmt::Write;
 /// A struct and methods for generating a Hopf fibration.
 pub mod fibre;
 /// Calculates length of path
 pub mod length;
 // /// A Point Cloud.
+
+use std::io::{LineWriter, Write};
 
 /// Stereographic projection of a fibre onto the base space.
 #[must_use]
@@ -36,34 +36,41 @@ pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> (f64, f64, f64) {
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_ply(point_gen: &[(f64, f64, f64)]) -> Result<String, Error> {
-    let mut ply = String::new();
-    ply.push_str("ply\n");
-    ply.push_str("format ascii 1.0\n");
-    writeln!(ply, "element vertex {}", point_gen.len()).unwrap();
-    ply.push_str("property float x\n");
-    ply.push_str("property float y\n");
-    ply.push_str("property float z\n");
-    ply.push_str("end_header\n");
+pub fn generate_ply<W>(points: &[(f64, f64, f64)], out: &mut LineWriter<W>) -> Result<(), std::io::Error>
+where
+ W: ?Sized + std::io::Write
+ {
+  let len = points.len();
+    writeln!(out, "ply")?;
+    writeln!(out, "format ascii 1.0")?;
+    writeln!(out, "element vertex {}", len)?;
+    writeln!(out, "property float x")?;
+    writeln!(out, "property float y")?;
+    writeln!(out, "property float z")?;
+    writeln!(out, "end_header")?;
 
-    for (x, y, z) in point_gen {
-        writeln!(ply, "{x} {y} {z}")?;
+    for (x, y, z) in points {
+        writeln!(out, "{x} {y} {z}")?;
     }
-    Ok(ply)
+
+    Ok(())
 }
 
 /// Generate an OBJ file from a `PointCloud`.
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_obj(lines_gen: &[Vec<(f64, f64, f64)>]) -> Result<String, Error> {
-    let mut obj = String::new();
+pub fn generate_obj<W>(lines_gen: &[Vec<(f64, f64, f64)>], out: &mut LineWriter<W>) -> Result<(), std::io::Error>
+where
+ W: ?Sized + std::io::Write
+{
     for (i, line) in lines_gen.iter().enumerate() {
-        writeln!(obj, "o fibre_{i}")?;
+        writeln!(out, "o fibre_{i}")?;
         for (x, y, z) in line {
-            writeln!(obj, "v {x} {y} {z}")?;
+            writeln!(out, "v {x} {y} {z}")?;
         }
-        obj.push_str("g hopf_fibration\n");
+        // out.push_str("g hopf_fibration\n");
+        writeln!(out, "g hopf_fibration\n")?;
     }
-    Ok(obj)
+    Ok(())
 }
