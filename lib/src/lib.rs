@@ -64,13 +64,23 @@ pub fn generate_obj<W>(lines_gen: &[Vec<(f64, f64, f64)>], out: &mut LineWriter<
 where
  W: ?Sized + std::io::Write
 {
+    // in OBJ files the index runs to 1...=N
+    let mut index = 1;
     for (i, line) in lines_gen.iter().enumerate() {
         writeln!(out, "o fibre_{i}")?;
         for (x, y, z) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
         // out.push_str("g hopf_fibration\n");
-        writeln!(out, "g hopf_fibration\n")?;
+        write!(out, "l")?;
+        let index0 = index;
+        for _ in 1..line.len(){
+          write!(out, " {index}")?;
+          index = index + 1;
+        }
+        // Close the loop by append the start to end.
+        writeln!(out, " {index0}")?;
+
     }
     Ok(())
 }
