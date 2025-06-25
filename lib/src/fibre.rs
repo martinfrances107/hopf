@@ -134,7 +134,7 @@ pub(crate) fn distance(f0: (f64, f64, f64), f1: (f64, f64, f64)) -> f64 {
     let dx = f1.0 - f0.0;
     let dy = f1.1 - f0.1;
     let dz = f1.2 - f0.2;
-    (dx * dx + dy * dy + dz * dz).sqrt()
+    dz.mul_add(dz, dx.mul_add(dx, dy * dy)).sqrt()
 }
 
 #[cfg(test)]

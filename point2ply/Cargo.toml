@@ -3,10 +3,13 @@ name = "point2ply"
 version = "0.1.0"
 authors.workspace = true
 description = "Generates a single hopf fibration."
+categories.workspace = true
+keywords.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
 repository.workspace = true
+readme.workspace = true
 rust-version.workspace = true
 
 [dependencies]
