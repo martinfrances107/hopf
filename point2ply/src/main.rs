@@ -10,14 +10,14 @@
 #![allow(clippy::many_single_char_names)]
 
 use hopf::{fibre::Fibre, generate_ply};
-use std::io::{Error, LineWriter};
+use std::io::{Error, BufWriter};
 
 fn main() -> Result<(), Error> {
     // TODO Take seed from stdIn.
 
     let stdout = std::io::stdout();
     let handle = stdout.lock();
-    let mut writer = LineWriter::new(handle);
+    let mut writer = BufWriter::new(handle);
 
     let fibre = Fibre::new(
         5.0_f64.to_radians(),
