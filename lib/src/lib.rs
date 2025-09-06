@@ -14,8 +14,10 @@ pub mod fibre;
 /// Calculates length of path
 pub mod length;
 // /// A Point Cloud.
+/// Mesh to object routines
+pub mod obj;
 
-use std::io::{LineWriter, Write};
+use std::io::{BufWriter, Write};
 
 /// Stereographic projection of a fibre onto the base space.
 #[must_use]
@@ -36,11 +38,14 @@ pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> (f64, f64, f64) {
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_ply<W>(points: &[(f64, f64, f64)], out: &mut LineWriter<W>) -> Result<(), std::io::Error>
+pub fn generate_ply<W>(
+    points: &[(f64, f64, f64)],
+    out: &mut BufWriter<W>,
+) -> Result<(), std::io::Error>
 where
- W: ?Sized + std::io::Write
- {
-  let len = points.len();
+    W: ?Sized + std::io::Write,
+{
+    let len = points.len();
     writeln!(out, "ply")?;
     writeln!(out, "format ascii 1.0")?;
     writeln!(out, "element vertex {len}")?;
@@ -60,9 +65,12 @@ where
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_obj<W>(lines_gen: &[Vec<(f64, f64, f64)>], out: &mut LineWriter<W>) -> Result<(), std::io::Error>
+pub fn generate_obj<W>(
+    lines_gen: &[Vec<(f64, f64, f64)>],
+    out: &mut BufWriter<W>,
+) -> Result<(), std::io::Error>
 where
- W: ?Sized + std::io::Write
+    W: ?Sized + std::io::Write,
 {
     // in OBJ files the index runs to 1...=N
     let mut index = 1;
@@ -76,13 +84,12 @@ where
 
         // First point of the loop.
         let index0 = index;
-        for _ in line{
-          write!(out, " {index}")?;
-          index += 1;
+        for _ in line {
+            write!(out, " {index}")?;
+            index += 1;
         }
         // Close the loop by appending the start of the loop to the end.
         writeln!(out, " {index0}")?;
-
     }
     Ok(())
 }

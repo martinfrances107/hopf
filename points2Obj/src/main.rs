@@ -9,7 +9,7 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use std::io::{Error, LineWriter};
+use std::io::{Error, BufWriter};
 
 use hopf::generate_obj;
 
@@ -19,7 +19,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let stdout = std::io::stdout();
     let handle = stdout.lock();
-    let mut writer = LineWriter::new(handle);
+    let mut writer = BufWriter::new(handle);
 
     let lat = 10_f64.to_radians();
     (0..270).step_by(1).for_each(|i| {
