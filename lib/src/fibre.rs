@@ -61,7 +61,11 @@ impl Fibre {
     ///
     /// When the size up and step down adjustment oscillates
     /// between two values and `n_tries` is exceeded.
-    pub fn build(&self, target_samples: u32,n_tries: u32) -> Result<Vec<(f64, f64, f64)>, NTriesExceedError> {
+    pub fn build(
+        &self,
+        target_samples: u32,
+        n_tries: u32,
+    ) -> Result<Vec<(f64, f64, f64)>, NTriesExceedError> {
         let fibre = self.projected_fibre();
         // Target number of points per circle.
         let len = path_length(&fibre, 0_f64, 4_f64 * f64::consts::PI, 10_000);
@@ -118,18 +122,20 @@ impl Fibre {
         Ok(points)
     }
 
+    // Transform a "time", t parameter into a point in E^3
     #[allow(non_snake_case)]
     fn projected_fibre(&self) -> impl Fn(f64) -> (f64, f64, f64) {
-        move |alpha| {
-            let X0 = f64::midpoint(alpha, self.phi).cos() * (self.theta / 2_f64).sin();
-            let X1 = f64::midpoint(alpha, self.phi).sin() * (self.theta / 2_f64).sin();
-            let X2 = ((alpha - self.phi) / 2_f64).cos() * (self.theta / 2_f64).cos();
-            let X3 = ((alpha - self.phi) / 2_f64).sin() * (self.theta / 2_f64).cos();
+        move |t| {
+            let X0 = f64::midpoint(t, self.phi).cos() * (self.theta / 2_f64).sin();
+            let X1 = f64::midpoint(t, self.phi).sin() * (self.theta / 2_f64).sin();
+            let X2 = ((t - self.phi) / 2_f64).cos() * (self.theta / 2_f64).cos();
+            let X3 = ((t - self.phi) / 2_f64).sin() * (self.theta / 2_f64).cos();
             project(X0, X1, X2, X3)
         }
     }
 }
 
+/// Euclidean distance between two points in 3d space.
 pub(crate) fn distance(f0: (f64, f64, f64), f1: (f64, f64, f64)) -> f64 {
     let dx = f1.0 - f0.0;
     let dy = f1.1 - f0.1;

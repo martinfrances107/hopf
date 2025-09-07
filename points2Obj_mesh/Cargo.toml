@@ -1,5 +1,5 @@
 [package]
-name = "point2obj"
+name = "point2obj_mesh"
 version = "0.1.0"
 authors.workspace = true
 description = "Generates a hopf fibration circles"

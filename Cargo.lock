@@ -7,7 +7,14 @@ name = "hopf"
 version = "0.1.0"
 
 [[package]]
-name = "point2obj"
+name = "point2obj_lines"
+version = "0.1.0"
+dependencies = [
+ "hopf",
+]
+
+[[package]]
+name = "point2obj_mesh"
 version = "0.1.0"
 dependencies = [
  "hopf",

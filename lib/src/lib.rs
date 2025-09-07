@@ -93,3 +93,36 @@ where
     }
     Ok(())
 }
+
+/// Generate an OBJ file from a `PointCloud`.
+///
+/// # Errors
+///   When writing to a buffer fails
+pub fn generate_obj_mesh<W>(
+    lines_gen: &[Vec<(f64, f64, f64)>],
+    out: &mut BufWriter<W>,
+) -> Result<(), std::io::Error>
+where
+    W: ?Sized + std::io::Write,
+{
+    // in OBJ files the index runs to 1...=N
+    let mut index = 1;
+    for (i, line) in lines_gen.iter().enumerate() {
+        writeln!(out, "o fibre_{i}")?;
+        for (x, y, z) in line {
+            writeln!(out, "v {x} {y} {z}")?;
+        }
+        // out.push_str("g hopf_fibration\n");
+        write!(out, "l")?;
+
+        // First point of the loop.
+        let index0 = index;
+        for _ in line {
+            write!(out, " {index}")?;
+            index += 1;
+        }
+        // Close the loop by appending the start of the loop to the end.
+        writeln!(out, " {index0}")?;
+    }
+    Ok(())
+}
