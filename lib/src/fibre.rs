@@ -65,7 +65,7 @@ impl Fibre {
         &self,
         target_samples: u32,
         n_tries: u32,
-    ) -> Result<Vec<(f64, f64, f64)>, NTriesExceedError> {
+    ) -> Result<(Vec<(f64, f64, f64)>, Vec<f64>), NTriesExceedError> {
         let fibre = self.projected_fibre();
         // Target number of points per circle.
         let len = path_length(&fibre, 0_f64, 4_f64 * f64::consts::PI, 10_000);
@@ -81,7 +81,9 @@ impl Fibre {
         let mut f_last = fibre(self.alpha_start);
         let mut alpha_last = self.alpha_start;
 
-        let mut points = vec![];
+        let mut points = Vec::with_capacity(target_samples as usize);
+        let mut alphas = Vec::with_capacity(target_samples as usize);
+
         'outer: loop {
             // Adjust step size.
             let mut f;
@@ -111,25 +113,30 @@ impl Fibre {
                 }
                 i += 1;
             }
-
             f_last = f;
             alpha_last = alpha;
             points.push(f);
+            alphas.push(alpha);
             if alpha >= self.alpha_end {
                 break 'outer;
             }
         }
-        Ok(points)
+        Ok((points, alphas))
     }
 
-    // Transform a "time", t parameter into a point in E^3
+    /// Transform a "time", t parameter into a point in E^3
+    ///
+    /// The "use<> implies "capture nothing"
+    /// <https://rust-lang.github.io/rfcs/3617-precise-capturing.html>
     #[allow(non_snake_case)]
-    fn projected_fibre(&self) -> impl Fn(f64) -> (f64, f64, f64) {
+    pub fn projected_fibre(&self) -> impl use<> + Fn(f64) -> (f64, f64, f64) {
+        let phi = self.phi.clone();
+        let theta = self.theta.clone();
         move |t| {
-            let X0 = f64::midpoint(t, self.phi).cos() * (self.theta / 2_f64).sin();
-            let X1 = f64::midpoint(t, self.phi).sin() * (self.theta / 2_f64).sin();
-            let X2 = ((t - self.phi) / 2_f64).cos() * (self.theta / 2_f64).cos();
-            let X3 = ((t - self.phi) / 2_f64).sin() * (self.theta / 2_f64).cos();
+            let X0 = f64::midpoint(t, phi).cos() * (theta / 2_f64).sin();
+            let X1 = f64::midpoint(t, phi).sin() * (theta / 2_f64).sin();
+            let X2 = ((t - phi) / 2_f64).cos() * (theta / 2_f64).cos();
+            let X3 = ((t - phi) / 2_f64).sin() * (theta / 2_f64).cos();
             project(X0, X1, X2, X3)
         }
     }
@@ -159,7 +166,7 @@ mod tests {
         );
 
         match fibre.build(12, 1_000_u32) {
-            Ok(points) => {
+            Ok((points, _)) => {
                 assert_eq!(points.len(), 12);
             }
             Err(_) => {

@@ -11,7 +11,8 @@
 
 use std::io::{BufWriter, Error};
 
-use hopf::generate_obj;
+use hopf::fibre::Fibre;
+use hopf::generate_obj_mesh;
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
@@ -21,6 +22,7 @@ fn main() -> Result<(), std::io::Error> {
     let handle = stdout.lock();
     let mut writer = BufWriter::new(handle);
 
+    // Big outer shell.
     let lat = 10_f64.to_radians();
     (0..270).step_by(1).for_each(|i| {
         let lon = (0_f64 + 10_f64 + f64::from(i)).to_radians();
@@ -39,16 +41,65 @@ fn main() -> Result<(), std::io::Error> {
     //     seeds.push((lat, lon));
     // });
 
-    let mut lines = vec![];
-    for (lat, lon) in seeds {
-        let fibre = hopf::fibre::Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
-        // let points = fibre.adaptive_build(1000);
-        let points = fibre.build(40, 2000_u32).map_err(|_| {
-            std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
-        })?;
+    let mut seed_iter = seeds.iter().take(10);
 
-        lines.push(points);
+    // Inspect don't consume.
+    let (initial_lat, initial_lon) = seed_iter
+        .next()
+        .expect("Must have more than one see to make a mesh");
+
+    let fibre_last = Fibre::new(
+        *initial_lat,
+        *initial_lon,
+        0_f64,
+        4.0 * std::f64::consts::PI,
+    );
+    let mut transform_last = fibre_last.projected_fibre();
+
+    let (_, alphas) = fibre_last.build(48, 2000_u32).map_err(|_| {
+        std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
+    })?;
+
+    let mut strips = vec![];
+
+    for (lat, lon) in seed_iter.clone() {
+        let fibre = Fibre::new(*lat, *lon, 0_f64, 4.0 * std::f64::consts::PI);
+
+        let transform = fibre.projected_fibre();
+
+        for alphas in alphas.windows(2) {
+            let alpha_prev = alphas[0];
+            let alpha = alphas[1];
+
+            // Push a quad (Clockwise winding).
+            strips.push(vec![
+                transform_last(alpha_prev),
+                transform(alpha_prev),
+                transform(alpha),
+                transform_last(alpha),
+            ]);
+        }
+        transform_last = transform;
     }
 
-    generate_obj(&lines, &mut writer).map_err(|_| Error::other("Error writing output."))
+    // Test pattern of squares.
+    //
+    // let mut strips = vec![];
+    // for alphas in (0..12).into_iter().collect::<Vec<_>>().windows(2) {
+    //     let alpha_prev = alphas[0];
+    //     let alpha = alphas[1];
+    //     for fibres in (0..4).into_iter().collect::<Vec<_>>().windows(2) {
+    //         let f_prev = fibres[0];
+    //         let f = fibres[1];
+
+    //         let mut quad = Vec::with_capacity(4);
+    //         quad.push((f_prev as f64, alpha_prev as f64, 0_f64));
+    //         quad.push((f as f64, alpha_prev as f64, 0_f64));
+    //         quad.push((f as f64, alpha as f64, 0_f64));
+    //         quad.push((f_prev as f64, alpha as f64, 0_f64));
+    //         strips.push(quad);
+    //     }
+    // }
+
+    generate_obj_mesh(&strips, &mut writer).map_err(|_| Error::other("Error writing output."))
 }

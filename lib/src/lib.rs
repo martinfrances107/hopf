@@ -61,11 +61,12 @@ where
     Ok(())
 }
 
-/// Generate an OBJ file from a `PointCloud`.
+/// Each fibre becomes a "line" in a OBJ file
+///
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_obj<W>(
+pub fn generate_obj_lines<W>(
     lines_gen: &[Vec<(f64, f64, f64)>],
     out: &mut BufWriter<W>,
 ) -> Result<(), std::io::Error>
@@ -94,12 +95,12 @@ where
     Ok(())
 }
 
-/// Generate an OBJ file from a `PointCloud`.
+/// Adjacent fibres are stitched to form a mesh in a OBJ file.
 ///
 /// # Errors
 ///   When writing to a buffer fails
 pub fn generate_obj_mesh<W>(
-    lines_gen: &[Vec<(f64, f64, f64)>],
+    strip_gen: &[Vec<(f64, f64, f64)>],
     out: &mut BufWriter<W>,
 ) -> Result<(), std::io::Error>
 where
@@ -107,13 +108,12 @@ where
 {
     // in OBJ files the index runs to 1...=N
     let mut index = 1;
-    for (i, line) in lines_gen.iter().enumerate() {
-        writeln!(out, "o fibre_{i}")?;
+    for (i, line) in strip_gen.iter().enumerate() {
+        writeln!(out, "o strip_{i}")?;
         for (x, y, z) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
-        // out.push_str("g hopf_fibration\n");
-        write!(out, "l")?;
+        write!(out, "f")?;
 
         // First point of the loop.
         let index0 = index;

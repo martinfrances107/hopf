@@ -10,7 +10,7 @@
 #![allow(clippy::many_single_char_names)]
 
 use hopf::{fibre::Fibre, generate_ply};
-use std::io::{Error, BufWriter};
+use std::io::{BufWriter, Error};
 
 fn main() -> Result<(), Error> {
     // TODO Take seed from stdIn.
@@ -30,7 +30,5 @@ fn main() -> Result<(), Error> {
         .build(20, 1_000_u32)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
-    generate_ply(&points, &mut writer)
-        .map_err(|_| Error::other("Fail to write to buffer"))
-
+    generate_ply(&points, &mut writer).map_err(|_| Error::other("Fail to write to buffer"))
 }
