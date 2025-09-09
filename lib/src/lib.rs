@@ -17,6 +17,7 @@ pub mod length;
 /// Mesh to object routines
 pub mod obj;
 
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::io::{BufWriter, Write};
@@ -129,23 +130,42 @@ pub fn generate_obj_mesh<W>(
 where
     W: ?Sized + std::io::Write,
 {
-    // in OBJ files the index runs to 1...=N
-    let mut index = 1;
-    for (i, line) in strip_gen.iter().enumerate() {
-        writeln!(out, "o strip_{i}")?;
-        for Vertex(x, y, z) in line {
-            writeln!(out, "v {x} {y} {z}")?;
+    // Populate buffers.
+    // Obj indexes are 1 based on 0 based.
+    let mut vertex_store = HashMap::<Vertex, usize>::default();
+    let mut vertex_buffer = vec![];
+    let mut next_index = 1;
+    for strip in strip_gen {
+        for p in strip {
+            if !vertex_store.contains_key(p) {
+                // first time seeing this points
+                // add it to buffer and the store.
+                vertex_store.insert(p.clone(), next_index);
+                vertex_buffer.push(p);
+                next_index += 1;
+            }
         }
+    }
+
+    // Root vertex list.
+    for Vertex(x, y, z) in vertex_buffer {
+        writeln!(out, "v {x} {y} {z}")?;
+    }
+
+    //
+    // in OBJ files the index runs to 1...=N
+    writeln!(out, "o mesh")?;
+    for (i, line) in strip_gen.iter().enumerate() {
         write!(out, "f")?;
 
         // First point of the loop.
-        let index0 = index;
-        for _ in line {
+        for p in line {
+            let index = vertex_store
+                .get(p)
+                .expect("Unexpected: Point must be here it was just stored above!");
             write!(out, " {index}")?;
-            index += 1;
         }
-        // Close the loop by appending the start of the loop to the end.
-        writeln!(out, " {index0}")?;
+        writeln!(out)?;
     }
     Ok(())
 }
