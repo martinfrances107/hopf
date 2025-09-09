@@ -113,6 +113,7 @@ impl Fibre {
                 }
                 i += 1;
             }
+
             f_last = f;
             alpha_last = alpha;
             points.push(f);
@@ -130,8 +131,8 @@ impl Fibre {
     /// <https://rust-lang.github.io/rfcs/3617-precise-capturing.html>
     #[allow(non_snake_case)]
     pub fn projected_fibre(&self) -> impl use<> + Fn(f64) -> (f64, f64, f64) {
-        let phi = self.phi.clone();
-        let theta = self.theta.clone();
+        let phi = self.phi;
+        let theta = self.theta;
         move |t| {
             let X0 = f64::midpoint(t, phi).cos() * (theta / 2_f64).sin();
             let X1 = f64::midpoint(t, phi).sin() * (theta / 2_f64).sin();
