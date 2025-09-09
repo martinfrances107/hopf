@@ -14,8 +14,6 @@ pub mod fibre;
 /// Calculates length of path
 pub mod length;
 // /// A Point Cloud.
-/// Mesh to object routines
-pub mod obj;
 
 use std::collections::HashMap;
 use std::hash::Hash;

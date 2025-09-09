@@ -41,7 +41,7 @@ fn main() -> Result<(), std::io::Error> {
     //     seeds.push((lat, lon));
     // });
 
-    let mut seed_iter = seeds.iter().take(10);
+    let mut seed_iter = seeds.iter().take(20);
 
     // Inspect don't consume.
     let (initial_lat, initial_lon) = seed_iter
@@ -71,12 +71,12 @@ fn main() -> Result<(), std::io::Error> {
             let alpha_prev = alphas[0];
             let alpha = alphas[1];
 
-            // Push a quad (Clockwise winding).
+            // Push a quad (Obj files default to anti-clockwise winding order).
             strips.push(vec![
                 transform_last(alpha_prev),
-                transform(alpha_prev),
-                transform(alpha),
                 transform_last(alpha),
+                transform(alpha),
+                transform(alpha_prev),
             ]);
         }
         transform_last = transform;
