@@ -1,2 +1,2 @@
 rm *.obj
-cargo run > a.obj
+time cargo run --release > a.obj

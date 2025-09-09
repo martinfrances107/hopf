@@ -104,7 +104,6 @@ where
         for (x, y, z) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
-        // out.push_str("g hopf_fibration\n");
         write!(out, "l")?;
 
         // First point of the loop.
@@ -123,6 +122,9 @@ where
 ///
 /// # Errors
 ///   When writing to a buffer fails
+///
+/// # Panics
+///   When a vertex written to the store, cannot be read.
 pub fn generate_obj_mesh<W>(
     strip_gen: &[Vec<Vertex>],
     out: &mut BufWriter<W>,
@@ -130,7 +132,7 @@ pub fn generate_obj_mesh<W>(
 where
     W: ?Sized + std::io::Write,
 {
-    // Populate buffers.
+    // Populate the deduplicating mechanism.
     // Obj indexes are 1 based on 0 based.
     let mut vertex_store = HashMap::<Vertex, usize>::default();
     let mut vertex_buffer = vec![];
@@ -152,10 +154,9 @@ where
         writeln!(out, "v {x} {y} {z}")?;
     }
 
-    //
-    // in OBJ files the index runs to 1...=N
+    // In OBJ files the index runs to 1...=N
     writeln!(out, "o mesh")?;
-    for (i, line) in strip_gen.iter().enumerate() {
+    for line in strip_gen {
         write!(out, "f")?;
 
         // First point of the loop.

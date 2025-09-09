@@ -82,24 +82,5 @@ fn main() -> Result<(), std::io::Error> {
         transform_last = transform;
     }
 
-    // Test pattern of squares.
-    //
-    // let mut strips = vec![];
-    // for alphas in (0..12).into_iter().collect::<Vec<_>>().windows(2) {
-    //     let alpha_prev = alphas[0];
-    //     let alpha = alphas[1];
-    //     for fibres in (0..4).into_iter().collect::<Vec<_>>().windows(2) {
-    //         let f_prev = fibres[0];
-    //         let f = fibres[1];
-
-    //         let mut quad = Vec::with_capacity(4);
-    //         quad.push((f_prev as f64, alpha_prev as f64, 0_f64));
-    //         quad.push((f as f64, alpha_prev as f64, 0_f64));
-    //         quad.push((f as f64, alpha as f64, 0_f64));
-    //         quad.push((f_prev as f64, alpha as f64, 0_f64));
-    //         strips.push(quad);
-    //     }
-    // }
-
     generate_obj_mesh(&strips, &mut writer).map_err(|_| Error::other("Error writing output."))
 }
