@@ -2,6 +2,7 @@ use core::{error::Error, f64};
 use std::fmt::Display;
 use std::fmt::Formatter;
 
+use crate::Vertex;
 use crate::{length::path_length, project};
 
 /// A fibre is a point on s(2)
@@ -65,7 +66,7 @@ impl Fibre {
         &self,
         target_samples: u32,
         n_tries: u32,
-    ) -> Result<(Vec<(f64, f64, f64)>, Vec<f64>), NTriesExceedError> {
+    ) -> Result<(Vec<Vertex>, Vec<f64>), NTriesExceedError> {
         let fibre = self.projected_fibre();
         // Target number of points per circle.
         let len = path_length(&fibre, 0_f64, 4_f64 * f64::consts::PI, 10_000);
@@ -98,7 +99,7 @@ impl Fibre {
                 if alpha >= self.alpha_end {
                     break 'adaptive_loop;
                 }
-                let d = distance(f_last, f);
+                let d = distance(&f_last, &f);
                 if d > distance_max {
                     step *= 0.8_f64; // Too fast, reduce step size.
                 } else if d < distance_min {
@@ -114,7 +115,7 @@ impl Fibre {
                 i += 1;
             }
 
-            f_last = f;
+            f_last = f.clone();
             alpha_last = alpha;
             points.push(f);
             alphas.push(alpha);
@@ -130,7 +131,7 @@ impl Fibre {
     /// The "use<> implies "capture nothing"
     /// <https://rust-lang.github.io/rfcs/3617-precise-capturing.html>
     #[allow(non_snake_case)]
-    pub fn projected_fibre(&self) -> impl use<> + Fn(f64) -> (f64, f64, f64) {
+    pub fn projected_fibre(&self) -> impl use<> + Fn(f64) -> Vertex {
         let phi = self.phi;
         let theta = self.theta;
         move |t| {
@@ -144,7 +145,7 @@ impl Fibre {
 }
 
 /// Euclidean distance between two points in 3d space.
-pub(crate) fn distance(f0: (f64, f64, f64), f1: (f64, f64, f64)) -> f64 {
+pub(crate) fn distance(f0: &Vertex, f1: &Vertex) -> f64 {
     let dx = f1.0 - f0.0;
     let dy = f1.1 - f0.1;
     let dz = f1.2 - f0.2;

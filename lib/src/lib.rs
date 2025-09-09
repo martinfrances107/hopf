@@ -17,20 +17,43 @@ pub mod length;
 /// Mesh to object routines
 pub mod obj;
 
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::io::{BufWriter, Write};
+
+/// Hashable version of a point in E3.
+#[derive(Debug, Clone)]
+pub struct Vertex(f64, f64, f64);
+
+impl Eq for Vertex {}
+impl PartialEq for Vertex {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.to_bits() == other.0.to_bits()
+            && self.1.to_bits() == other.1.to_bits()
+            && self.2.to_bits() == other.2.to_bits()
+    }
+}
+
+impl Hash for Vertex {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.to_bits().hash(state);
+        self.1.to_bits().hash(state);
+        self.2.to_bits().hash(state);
+    }
+}
 
 /// Stereographic projection of a fibre onto the base space.
 #[must_use]
 #[allow(non_snake_case)]
-pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> (f64, f64, f64) {
+pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
     if (1_f64 - X3).abs() < f64::EPSILON {
         // Handle the case where the point is at infinity.
-        (f64::NAN, f64::NAN, f64::NAN)
+        Vertex(f64::NAN, f64::NAN, f64::NAN)
     } else {
         let x = X0 / (1_f64 - X3);
         let y = X1 / (1_f64 - X3);
         let z = X2 / (1_f64 - X3);
-        (x, y, z)
+        Vertex(x, y, z)
     }
 }
 
@@ -100,7 +123,7 @@ where
 /// # Errors
 ///   When writing to a buffer fails
 pub fn generate_obj_mesh<W>(
-    strip_gen: &[Vec<(f64, f64, f64)>],
+    strip_gen: &[Vec<Vertex>],
     out: &mut BufWriter<W>,
 ) -> Result<(), std::io::Error>
 where
@@ -110,7 +133,7 @@ where
     let mut index = 1;
     for (i, line) in strip_gen.iter().enumerate() {
         writeln!(out, "o strip_{i}")?;
-        for (x, y, z) in line {
+        for Vertex(x, y, z) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
         write!(out, "f")?;

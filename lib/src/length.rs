@@ -1,4 +1,4 @@
-use crate::fibre::distance;
+use crate::{Vertex, fibre::distance};
 
 /// Crude estimate of length bases on n step.
 ///
@@ -7,7 +7,7 @@ use crate::fibre::distance;
 ///
 /// As n -> infinity, the output -> length
 pub(crate) fn path_length(
-    f: impl Fn(f64) -> (f64, f64, f64),
+    f: impl Fn(f64) -> Vertex,
     alpha_start: f64,
     alpha_end: f64,
     n: u32,
@@ -20,7 +20,7 @@ pub(crate) fn path_length(
     for _ in 1..n {
         alpha += step;
         let f = f(alpha);
-        let d = distance(f_last, f);
+        let d = distance(&f_last, &f);
         len += d;
         f_last = f;
     }
