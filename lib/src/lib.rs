@@ -13,9 +13,10 @@
 pub mod fibre;
 /// Calculates length of path
 pub mod length;
-// /// A Point Cloud.
+// /// A Point Cloud
+/// Handling OBJ file format.
+pub mod obj;
 
-use std::collections::HashMap;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::io::{BufWriter, Write};
@@ -112,59 +113,6 @@ where
         }
         // Close the loop by appending the start of the loop to the end.
         writeln!(out, " {index0}")?;
-    }
-    Ok(())
-}
-
-/// Adjacent fibres are stitched to form a mesh in a OBJ file.
-///
-/// # Errors
-///   When writing to a buffer fails
-///
-/// # Panics
-///   When a vertex written to the store, cannot be read.
-pub fn generate_obj_mesh<W>(
-    strip_gen: &[Vec<Vertex>],
-    out: &mut BufWriter<W>,
-) -> Result<(), std::io::Error>
-where
-    W: ?Sized + std::io::Write,
-{
-    // Populate the deduplicating mechanism.
-    // Obj indexes are 1 based on 0 based.
-    let mut vertex_store = HashMap::<Vertex, usize>::default();
-    let mut vertex_buffer = vec![];
-    let mut next_index = 1;
-    for strip in strip_gen {
-        for p in strip {
-            if !vertex_store.contains_key(p) {
-                // first time seeing this points
-                // add it to buffer and the store.
-                vertex_store.insert(p.clone(), next_index);
-                vertex_buffer.push(p);
-                next_index += 1;
-            }
-        }
-    }
-
-    // Root vertex list.
-    for Vertex(x, y, z) in vertex_buffer {
-        writeln!(out, "v {x} {y} {z}")?;
-    }
-
-    // In OBJ files the index runs to 1...=N
-    writeln!(out, "o mesh")?;
-    for line in strip_gen {
-        write!(out, "f")?;
-
-        // First point of the loop.
-        for p in line {
-            let index = vertex_store
-                .get(p)
-                .expect("Unexpected: Point must be here it was just stored above!");
-            write!(out, " {index}")?;
-        }
-        writeln!(out)?;
     }
     Ok(())
 }
