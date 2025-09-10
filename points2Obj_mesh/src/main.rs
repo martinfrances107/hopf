@@ -67,7 +67,7 @@ fn main() -> Result<(), std::io::Error> {
         );
         let mut transform_last = fibre_last.projected_fibre();
 
-        let (_, alphas) = fibre_last.build(48, 2000_u32).map_err(|_| {
+        let (_, alphas) = fibre_last.build(1000, 2000_u32).map_err(|_| {
             std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
         })?;
 
