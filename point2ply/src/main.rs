@@ -26,7 +26,7 @@ fn main() -> Result<(), Error> {
         4.0 * std::f64::consts::PI,
     );
 
-    let points = fibre
+    let (points, _) = fibre
         .build(20, 1_000_u32)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 

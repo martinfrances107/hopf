@@ -61,10 +61,7 @@ pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_ply<W>(
-    points: &[(f64, f64, f64)],
-    out: &mut BufWriter<W>,
-) -> Result<(), std::io::Error>
+pub fn generate_ply<W>(points: &[Vertex], out: &mut BufWriter<W>) -> Result<(), std::io::Error>
 where
     W: ?Sized + std::io::Write,
 {
@@ -77,7 +74,7 @@ where
     writeln!(out, "property float z")?;
     writeln!(out, "end_header")?;
 
-    for (x, y, z) in points {
+    for Vertex(x, y, z) in points {
         writeln!(out, "{x} {y} {z}")?;
     }
 
@@ -90,7 +87,7 @@ where
 /// # Errors
 ///   When writing to a buffer fails
 pub fn generate_obj_lines<W>(
-    lines_gen: &[Vec<(f64, f64, f64)>],
+    lines_gen: &[Vec<Vertex>],
     out: &mut BufWriter<W>,
 ) -> Result<(), std::io::Error>
 where
@@ -100,7 +97,7 @@ where
     let mut index = 1;
     for (i, line) in lines_gen.iter().enumerate() {
         writeln!(out, "o fibre_{i}")?;
-        for (x, y, z) in line {
+        for Vertex(x, y, z) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
         write!(out, "l")?;
