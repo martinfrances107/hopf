@@ -16,7 +16,6 @@ use hopf::obj::Obj;
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
-    // let mut seeds = vec![];
 
     let stdout = std::io::stdout();
     let handle = stdout.lock();
@@ -52,7 +51,7 @@ fn main() -> Result<(), std::io::Error> {
     let mut obj = Obj::default();
 
     for (i, mesh) in meshes.into_iter().enumerate() {
-        let mut seed_iter = mesh.iter().take(20);
+        let mut seed_iter = mesh.iter();
 
         // Inspect don't consume.
         let (initial_lat, initial_lon) = seed_iter
@@ -65,9 +64,8 @@ fn main() -> Result<(), std::io::Error> {
             0_f64,
             4.0 * std::f64::consts::PI,
         );
-        let mut transform_last = fibre_last.projected_fibre();
 
-        let (_, alphas) = fibre_last.build(1000, 2000_u32).map_err(|_| {
+        let (mut points_last, _alphas) = fibre_last.build(40, 2000_u32).map_err(|_| {
             std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
         })?;
 
@@ -76,26 +74,22 @@ fn main() -> Result<(), std::io::Error> {
         for (lat, lon) in seed_iter.clone() {
             let fibre = Fibre::new(*lat, *lon, 0_f64, 4.0 * std::f64::consts::PI);
 
-            let transform = fibre.projected_fibre();
+            let (points, _alphas) = fibre.build(40, 2000_u32).map_err(|_| {
+                std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
+            })?;
 
-            for alphas in alphas.windows(2) {
-                let alpha_prev = alphas[0];
-                let alpha = alphas[1];
+            assert_eq!(points.len(), 40);
 
-                let p0 = transform_last(alpha_prev);
-                let i0 = obj.add_vertex(&p0);
-                let p1 = transform_last(alpha);
-                let i1 = obj.add_vertex(&p1);
-                let p2 = transform(alpha);
-                let i2 = obj.add_vertex(&p2);
-                let p3 = transform(alpha_prev);
-                let i3 = obj.add_vertex(&p3);
+            for i in 1..40 {
+                let i0 = obj.add_vertex(&points_last[i - 1]);
+                let i1 = obj.add_vertex(&points_last[i]);
+                let i2 = obj.add_vertex(&points[i]);
+                let i3 = obj.add_vertex(&points[i - 1]);
                 // Push a quad (Obj files default to anti-clockwise winding order).
-                // println!("{:#?}", [i0, i1, i2, i3]);
                 quads.push([i0, i1, i2, i3]);
             }
 
-            transform_last = transform;
+            points_last = points;
         }
         let name = format!("o object_{i}");
         obj.push_quads(name, quads);

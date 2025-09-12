@@ -46,7 +46,6 @@ fn main() -> Result<(), std::io::Error> {
         let (points, _) = fibre.build(40, 2000_u32).map_err(|_| {
             std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
         })?;
-
         lines.push(points);
     }
 
