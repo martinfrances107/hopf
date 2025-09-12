@@ -73,8 +73,8 @@ impl Fibre {
 
         // Target distance to travel per step;
         let target_dist = len / f64::from(target_samples);
-        let distance_min = 0.99 * target_dist;
-        let distance_max = 1.01 * target_dist;
+        let distance_min = 0.999 * target_dist;
+        let distance_max = 1.001 * target_dist;
 
         // Change in alpha. Dynamically adjusted step size.
         let mut step = 4_f64 * f64::consts::PI / f64::from(target_samples);
@@ -127,6 +127,8 @@ impl Fibre {
     }
 
     /// Transform a "time", t parameter into a point in E^3
+    ///
+    /// <https://en.wikipedia.org/wiki/Hopf_fibration>
     ///
     /// The "use<> implies "capture nothing"
     /// <https://rust-lang.github.io/rfcs/3617-precise-capturing.html>

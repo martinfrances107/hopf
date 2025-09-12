@@ -47,8 +47,9 @@ impl Hash for Vertex {
 #[allow(non_snake_case)]
 pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
     if (1_f64 - X3).abs() < f64::EPSILON {
-        // Handle the case where the point is at infinity.
-        Vertex(f64::NAN, f64::NAN, f64::NAN)
+        // Handle the case where the point is at infinity or -infinity.
+        // For now just stop.
+        panic!("division by zero");
     } else {
         let x = X0 / (1_f64 - X3);
         let y = X1 / (1_f64 - X3);
