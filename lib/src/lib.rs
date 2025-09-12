@@ -43,6 +43,9 @@ impl Hash for Vertex {
 }
 
 /// Stereographic projection of a fibre onto the base space.
+///
+/// # Panics
+///  If the point is at infinity or -infinity (X3 == 1)
 #[must_use]
 #[allow(non_snake_case)]
 pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
