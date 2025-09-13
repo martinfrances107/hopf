@@ -27,7 +27,7 @@ fn main() -> Result<(), Error> {
     );
 
     let (points, _) = fibre
-        .build(20, 1_000_u32)
+        .build(20, 2_000_u32)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
     generate_ply(&points, &mut writer).map_err(|_| Error::other("Fail to write to buffer"))
