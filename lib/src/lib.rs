@@ -13,6 +13,10 @@
 pub mod fibre;
 /// Calculates length of path
 pub mod length;
+
+/// Collection of fibres woven into a mesh.
+pub mod mesh;
+
 // /// A Point Cloud
 /// Handling OBJ file format.
 pub mod obj;
