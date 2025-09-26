@@ -51,6 +51,8 @@ impl Fibre {
     ///
     /// `n_tries` - is the maximum number of tries in step size adjustment loop.
     ///
+    /// scale - Scale the output points by this factor.
+    ///
     /// The points are uniformly separated by adaptively altering alpha
     /// until adjacent points are separated by a value a error of 1%.
     ///
@@ -64,6 +66,7 @@ impl Fibre {
     /// between two values and `n_tries` is exceeded.
     pub fn build(
         &self,
+        scale: f64,
         target_samples: u32,
         n_tries: u32,
     ) -> Result<(Vec<Vertex>, Vec<f64>), NTriesExceedError> {
@@ -117,7 +120,7 @@ impl Fibre {
 
             f_last = f.clone();
             alpha_last = alpha;
-            points.push(f);
+            points.push(f.scale(scale));
             alphas.push(alpha);
             if alpha >= self.alpha_end {
                 break 'outer;
@@ -169,7 +172,7 @@ mod tests {
             4.0 * std::f64::consts::PI,
         );
 
-        match fibre.build(12, 1_000_u32) {
+        match fibre.build(12, 1_000_u32, 2000) {
             Ok((points, _)) => {
                 assert_eq!(points.len(), 12);
             }

@@ -27,7 +27,7 @@ use std::io::{BufWriter, Write};
 
 /// Hashable version of a point in E3.
 #[derive(Debug, Clone)]
-pub struct Vertex(f64, f64, f64);
+pub struct Vertex(pub f64, pub f64, pub f64);
 
 impl Eq for Vertex {}
 impl PartialEq for Vertex {
@@ -43,6 +43,13 @@ impl Hash for Vertex {
         self.0.to_bits().hash(state);
         self.1.to_bits().hash(state);
         self.2.to_bits().hash(state);
+    }
+}
+
+impl Vertex {
+    // Scale point by a scalar.
+    fn scale(&self, scale: f64) -> Vertex {
+        Vertex(self.0 * scale, self.1 * scale, self.2 * scale)
     }
 }
 
