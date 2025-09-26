@@ -26,62 +26,54 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut meshes = vec![];
 
+    let scale = 0.1;
     // Big outer shell.
-    let mesh = weave(
-        &(10_f64.to_radians(), 0_f64),
-        &(10_f64.to_radians(), 270_f64.to_radians()),
-        27,
-    );
+    let start = (10_f64.to_radians(), 0_f64);
+    let end = (10_f64.to_radians(), 270_f64.to_radians());
+    let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
-    let mesh = weave(
-        &(20_f64.to_radians(), 0_f64),
-        &(20_f64.to_radians(), 270_f64.to_radians()),
-        27,
-    );
+    let start = (20_f64.to_radians(), 0_f64);
+    let end = (20_f64.to_radians(), 270_f64.to_radians());
+    let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
-    let mesh = weave(
-        &(30_f64.to_radians(), 0_f64),
-        &(30_f64.to_radians(), 270_f64.to_radians()),
-        27,
-    );
+    let start = (30_f64.to_radians(), 0_f64);
+    let end = (30_f64.to_radians(), 270_f64.to_radians());
+    let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
     let mut obj = Obj::default();
 
     for (i, mesh) in meshes.into_iter().enumerate() {
-        let mut seed_iter = mesh.iter();
+        let mut seed_iter = mesh;
 
         // Inspect don't consume.
         let (initial_lat, initial_lon) = seed_iter
             .next()
             .expect("Must have more than one seed to make a mesh");
 
-        let fibre_last = Fibre::new(
-            *initial_lat,
-            *initial_lon,
-            0_f64,
-            4.0 * std::f64::consts::PI,
-        );
+        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64, 4.0 * std::f64::consts::PI);
 
-        let (mut points_last, _alphas) =
-            fibre_last
-                .build(NUM_POINTS_PER_LOOP, NUM_TRIES)
-                .map_err(|_| {
-                    std::io::Error::other(
-                        "Oscillation detected while adaptively constructing a fibre",
-                    )
-                })?;
+        let (mut points_last, _alphas) = fibre_last
+            .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
+            .map_err(|_| {
+                std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
+            })?;
 
         let mut quads = vec![];
 
         for (lat, lon) in seed_iter {
-            let fibre = Fibre::new(*lat, *lon, 0_f64, 4.0 * std::f64::consts::PI);
+            let fibre = Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
 
-            let (points, _alphas) = fibre.build(NUM_POINTS_PER_LOOP, NUM_TRIES).map_err(|_| {
-                std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
-            })?;
+            let (points, _alphas) =
+                fibre
+                    .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
+                    .map_err(|_| {
+                        std::io::Error::other(
+                            "Oscillation detected while adaptively constructing a fibre",
+                        )
+                    })?;
 
             assert_eq!(points.len(), NUM_POINTS_PER_LOOP as usize);
 

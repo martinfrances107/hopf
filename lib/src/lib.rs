@@ -48,8 +48,8 @@ impl Hash for Vertex {
 
 impl Vertex {
     // Scale point by a scalar.
-    fn scale(&self, scale: f64) -> Vertex {
-        Vertex(self.0 * scale, self.1 * scale, self.2 * scale)
+    fn scale(&self, scale: f64) -> Self {
+        Self(self.0 * scale, self.1 * scale, self.2 * scale)
     }
 }
 

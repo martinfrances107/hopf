@@ -43,7 +43,7 @@ fn main() -> Result<(), std::io::Error> {
     for (lat, lon) in seeds {
         let fibre = hopf::fibre::Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
         // let points = fibre.adaptive_build(1000);
-        let (points, _) = fibre.build(40, 2000_u32).map_err(|_| {
+        let (points, _) = fibre.build(1_f64, 40, 2000_u32).map_err(|_| {
             std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
         })?;
         lines.push(points);
