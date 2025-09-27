@@ -1,0 +1,22 @@
+[package]
+name = "bevy_hopf"
+version = "0.1.0"
+description = "A bevy plugin, that allow rendering of a hopf mesh"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+hopf = { path = "../lib" }
+bevy = { path = "../../bevy" }
+bevy_mesh = { path = "../../bevy/crates/bevy_mesh" }
+thiserror = "2.0.16"
+
+[[example]]
+name = "interactive"

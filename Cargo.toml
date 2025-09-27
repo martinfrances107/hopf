@@ -1,5 +1,11 @@
 [workspace]
-members = ["./lib", "point2ply", "points2Obj_lines", "points2Obj_mesh"]
+members = [
+  "bevy_hopf",
+  "./lib",
+  "point2ply",
+  "points2Obj_lines",
+  "points2Obj_mesh",
+]
 resolver = "2"
 default-members = ["./lib"]
 
