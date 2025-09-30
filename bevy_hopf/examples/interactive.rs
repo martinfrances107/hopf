@@ -48,8 +48,8 @@ fn main() {
 #[derive(Component)]
 struct Shape;
 
-const SHAPES_X_EXTENT: f32 = 14.0;
-const Z_EXTENT: f32 = 5.0;
+const SHAPES_X_EXTENT: f32 = 10.0;
+const Z_EXTENT: f32 = 10.0;
 
 fn setup_scene(
     mut commands: Commands,
@@ -85,7 +85,7 @@ fn setup_scene(
 
     let shapes = [
         meshes.add(Sphere::default().mesh().ico(5).unwrap()),
-        meshes.add(hopf_builder.construct(10, 100, 0.1).unwrap()),
+        meshes.add(hopf_builder.construct(10, 100, 0.03).unwrap()),
     ];
 
     let num_shapes = shapes.len();
@@ -98,9 +98,10 @@ fn setup_scene(
                 MeshMaterial3d(white_matl.clone()),
                 Transform::from_xyz(
                     -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
-                    2.0,
+                    3.0,
                     Z_EXTENT / 2.,
                 )
+                .with_scale(Vec3::splat(3.0))
                 .with_rotation(Quat::from_rotation_x(-PI / 4.)),
                 Shape,
             ))
