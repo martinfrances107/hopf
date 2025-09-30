@@ -120,7 +120,7 @@ impl Fibre {
 
             f_last = f.clone();
             alpha_last = alpha;
-            points.push(f.scale(scale));
+            points.push(f * scale);
             alphas.push(alpha);
             if alpha >= self.alpha_end {
                 break 'outer;

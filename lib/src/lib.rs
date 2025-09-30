@@ -21,6 +21,7 @@ pub mod mesh;
 /// Handling OBJ file format.
 pub mod obj;
 
+use core::ops::Mul;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::io::{BufWriter, Write};
@@ -46,10 +47,11 @@ impl Hash for Vertex {
     }
 }
 
-impl Vertex {
-    // Scale point by a scalar.
-    fn scale(&self, scale: f64) -> Self {
-        Self(self.0 * scale, self.1 * scale, self.2 * scale)
+impl Mul<f64> for Vertex {
+    type Output = Self;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
     }
 }
 
