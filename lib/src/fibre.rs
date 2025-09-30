@@ -172,9 +172,9 @@ mod tests {
             4.0 * std::f64::consts::PI,
         );
 
-        match fibre.build(12, 1_000_u32, 2000) {
+        match fibre.build(1.0, 1_000, 2000) {
             Ok((points, _)) => {
-                assert_eq!(points.len(), 12);
+                assert_eq!(points.len(), 1_000);
             }
             Err(_) => {
                 assert!(false);

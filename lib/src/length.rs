@@ -35,8 +35,8 @@ mod tests {
 
     use super::*;
 
-    fn circle(alpha: f64) -> (f64, f64, f64) {
-        (alpha.sin(), alpha.cos(), 0_f64)
+    fn circle(alpha: f64) -> Vertex {
+        Vertex(alpha.sin(), alpha.cos(), 0_f64)
     }
 
     #[test]
