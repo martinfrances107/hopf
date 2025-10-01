@@ -2,6 +2,8 @@ use crate::Vertex;
 use std::io::Write;
 use std::{collections::HashMap, io::BufWriter};
 
+use glam::DVec3;
+
 /// Hold state information related to the storage of
 /// quads in a OBJ file.
 #[derive(Debug)]
@@ -37,8 +39,8 @@ impl Obj {
             // first time seeing this points
             // add it to buffer and the store.
             let index = self.next_index;
-            self.vertex_store.insert(p.clone(), index);
-            self.vertex_buffer.push(p.clone());
+            self.vertex_store.insert(*p, index);
+            self.vertex_buffer.push(*p);
             self.next_index += 1;
             index
         }
@@ -61,7 +63,7 @@ impl Obj {
         W: ?Sized + std::io::Write,
     {
         // Root vertex list.
-        for Vertex(x, y, z) in &self.vertex_buffer {
+        for Vertex(DVec3 { x, y, z }) in &self.vertex_buffer {
             writeln!(out, "v {x} {y} {z}")?;
         }
 

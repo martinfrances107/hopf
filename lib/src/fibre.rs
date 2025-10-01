@@ -102,7 +102,8 @@ impl Fibre {
                 if alpha >= self.alpha_end {
                     break 'adaptive_loop;
                 }
-                let d = distance(&f_last, &f);
+
+                let d = f_last.0.distance(f.0);
                 if d > distance_max {
                     step *= 0.8_f64; // Too fast, reduce step size.
                 } else if d < distance_min {
@@ -118,7 +119,7 @@ impl Fibre {
                 i += 1;
             }
 
-            f_last = f.clone();
+            f_last = f;
             alpha_last = alpha;
             points.push(f * scale);
             alphas.push(alpha);
@@ -147,14 +148,6 @@ impl Fibre {
             project(X0, X1, X2, X3)
         }
     }
-}
-
-/// Euclidean distance between two points in 3d space.
-pub(crate) fn distance(f0: &Vertex, f1: &Vertex) -> f64 {
-    let dx = f1.0 - f0.0;
-    let dy = f1.1 - f0.1;
-    let dz = f1.2 - f0.2;
-    dz.mul_add(dz, dx.mul_add(dx, dy * dy)).sqrt()
 }
 
 #[cfg(test)]

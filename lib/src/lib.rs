@@ -21,29 +21,33 @@ pub mod mesh;
 /// Handling OBJ file format.
 pub mod obj;
 
-use core::ops::Mul;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::io::{BufWriter, Write};
+use std::ops::Mul;
+
+use bytemuck::{Pod, Zeroable};
+use glam::DVec3;
 
 /// Hashable version of a point in E3.
-#[derive(Debug, Clone)]
-pub struct Vertex(pub f64, pub f64, pub f64);
+#[repr(transparent)]
+#[derive(Pod, Zeroable, Clone, Copy, Debug)]
+pub struct Vertex(pub DVec3);
 
 impl Eq for Vertex {}
 impl PartialEq for Vertex {
     fn eq(&self, other: &Self) -> bool {
-        self.0.to_bits() == other.0.to_bits()
-            && self.1.to_bits() == other.1.to_bits()
-            && self.2.to_bits() == other.2.to_bits()
+        self.0.x.to_bits() == other.0.x.to_bits()
+            && self.0.y.to_bits() == other.0.y.to_bits()
+            && self.0.z.to_bits() == other.0.z.to_bits()
     }
 }
 
 impl Hash for Vertex {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_bits().hash(state);
-        self.1.to_bits().hash(state);
-        self.2.to_bits().hash(state);
+        self.0.x.to_bits().hash(state);
+        self.0.y.to_bits().hash(state);
+        self.0.z.to_bits().hash(state);
     }
 }
 
@@ -51,7 +55,11 @@ impl Mul<f64> for Vertex {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
+        Self(DVec3 {
+            x: self.0.x * rhs,
+            y: self.0.y * rhs,
+            z: self.0.z * rhs,
+        })
     }
 }
 
@@ -70,7 +78,7 @@ pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
         let x = X0 / (1_f64 - X3);
         let y = X1 / (1_f64 - X3);
         let z = X2 / (1_f64 - X3);
-        Vertex(x, y, z)
+        Vertex(DVec3 { x, y, z })
     }
 }
 
@@ -91,7 +99,7 @@ where
     writeln!(out, "property float z")?;
     writeln!(out, "end_header")?;
 
-    for Vertex(x, y, z) in points {
+    for Vertex(DVec3 { x, y, z }) in points {
         writeln!(out, "{x} {y} {z}")?;
     }
 
@@ -114,7 +122,7 @@ where
     let mut index = 1;
     for (i, line) in lines_gen.iter().enumerate() {
         writeln!(out, "o fibre_{i}")?;
-        for Vertex(x, y, z) in line {
+        for Vertex(DVec3 { x, y, z }) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
         write!(out, "l")?;

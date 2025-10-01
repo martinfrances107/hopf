@@ -67,7 +67,7 @@ pub struct HopfMeshBuilder {
     hopf: Hopf,
     next_index: u32,
     /// Deduping mechanism.
-    pub vertex_store: HashMap<Vertex, u32>,
+    pub vertex_deduple: HashMap<Vertex, u32>,
     /// A list of point in the mesh.
     pub vertex_buffer: Vec<Vec3>,
     /// [1, 2, 3, 4, 5, 6] implies two triangles (1,2,3) and (4,5,6)
@@ -80,15 +80,15 @@ impl HopfMeshBuilder {
     /// If the point has been seen before it will be deduplicated.
     /// and a exiting index into the vertex buffer will be returned.
     pub fn add_vertex(&mut self, p: &Vertex) -> (bool, u32) {
-        if let Some(v) = self.vertex_store.get(p) {
+        if let Some(v) = self.vertex_deduple.get(p) {
             (false, *v)
         } else {
             // first time seeing this points
             // add it to buffer and the store.
             let index = self.next_index;
-            self.vertex_store.insert(p.clone(), index);
+            self.vertex_deduple.insert(*p, index);
             self.vertex_buffer
-                .push(Vec3::new(p.0 as f32, p.1 as f32, p.2 as f32));
+                .push(Vec3::new(p.0.x as f32, p.0.y as f32, p.0.z as f32));
             self.next_index += 1;
             (true, index)
         }
@@ -107,70 +107,29 @@ impl HopfMeshBuilder {
 
         // Compute the normal vector from the cross product of it two edges.
         if is_new0 {
-            let u = (
-                (p1.0 - p0.0) as f32,
-                (p1.1 - p0.1) as f32,
-                (p1.2 - p0.2) as f32,
-            );
-            let v = (
-                (p2.0 - p0.0) as f32,
-                (p2.1 - p0.1) as f32,
-                (p2.2 - p0.2) as f32,
-            );
-            let n = cross(&u, &v);
-            let n = normalize(&n);
-            self.normals_store.push(n.into());
+            let u = p1.0 - p0.0;
+            let v = p2.0 - p0.0;
+
+            let n = u.cross(v);
+            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
+            self.normals_store.push(n);
         }
         if is_new1 {
-            let u = (
-                (p2.0 - p1.0) as f32,
-                (p2.1 - p1.1) as f32,
-                (p2.2 - p1.2) as f32,
-            );
-            let v = (
-                (p0.0 - p1.0) as f32,
-                (p0.1 - p1.1) as f32,
-                (p0.2 - p1.2) as f32,
-            );
-            let n = cross(&u, &v);
-            let n = normalize(&n);
-            self.normals_store.push(n.into());
+            let u = p2.0 - p1.0;
+            let v = p0.0 - p1.0;
+            let n = u.cross(v);
+            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
+            self.normals_store.push(n);
         }
 
         if is_new2 {
-            let u = (
-                (p0.0 - p2.0) as f32,
-                (p0.1 - p2.1) as f32,
-                (p0.2 - p2.2) as f32,
-            );
-            let v = (
-                (p1.0 - p2.0) as f32,
-                (p1.1 - p2.1) as f32,
-                (p1.2 - p2.2) as f32,
-            );
-
-            let n = cross(&u, &v);
-            let n = normalize(&n);
-            self.normals_store.push(n.into());
+            let u = p0.0 - p2.0;
+            let v = p1.0 - p2.0;
+            let n = u.cross(v);
+            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
+            self.normals_store.push(n);
         }
     }
-}
-
-fn normalize(a: &(f32, f32, f32)) -> (f32, f32, f32) {
-    let length = (a.0 * a.0 + a.1 * a.1 + a.2 * a.2).sqrt();
-    if length > 0.0 {
-        (a.0 / length, a.1 / length, a.2 / length)
-    } else {
-        (0.0, 0.0, 0.0)
-    }
-}
-
-fn cross(a: &(f32, f32, f32), b: &(f32, f32, f32)) -> (f32, f32, f32) {
-    (
-        a.1 * b.2 - a.2 * b.1,
-        a.2 * b.0 - a.0 * b.2,
-        a.0 * b.1 - a.1 * b.0,
-    )
 }
 
 impl HopfMeshBuilder {
@@ -193,7 +152,7 @@ impl HopfMeshBuilder {
                 n_tries,
             },
             next_index: 1_u8.into(),
-            vertex_store: HashMap::default(),
+            vertex_deduple: HashMap::default(),
             vertex_buffer: Vec::new(),
             triangle_store: Indices::U32(Vec::new()),
             normals_store: Vec::new(),
@@ -306,7 +265,7 @@ impl Meshable for Hopf {
         HopfMeshBuilder {
             hopf: self.clone(),
             next_index: 1,
-            vertex_store: HashMap::default(),
+            vertex_deduple: HashMap::default(),
             vertex_buffer: Vec::new(),
             triangle_store: Indices::U32(Vec::new()),
             normals_store: Vec::new(),

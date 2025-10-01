@@ -1,4 +1,4 @@
-use crate::{Vertex, fibre::distance};
+use crate::Vertex;
 
 /// Crude estimate of length bases on n step.
 ///
@@ -20,7 +20,7 @@ pub(crate) fn path_length(
     for _ in 1..n {
         alpha += step;
         let f = f(alpha);
-        let d = distance(&f_last, &f);
+        let d = f_last.0.distance(f.0);
         len += d;
         f_last = f;
     }
@@ -31,12 +31,18 @@ pub(crate) fn path_length(
 mod tests {
     use core::f64;
 
+    use glam::DVec3;
+
     use crate::length;
 
     use super::*;
 
     fn circle(alpha: f64) -> Vertex {
-        Vertex(alpha.sin(), alpha.cos(), 0_f64)
+        Vertex(DVec3 {
+            x: alpha.sin(),
+            y: alpha.cos(),
+            z: 0_f64,
+        })
     }
 
     #[test]
