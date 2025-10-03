@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use bevy::asset::RenderAssetUsages;
-
-use bevy::prelude::*;
+use bevy::prelude::Vec3;
 use bevy_mesh::Indices;
 use bevy_mesh::Mesh;
 use bevy_mesh::MeshBuilder;
@@ -43,7 +42,6 @@ struct Hopf {
     line_end: (f64, f64),
     n_points_per_loop: u32,
     n_loops: u32,
-    n_tries: u32,
 }
 
 impl Default for Hopf {
@@ -53,7 +51,6 @@ impl Default for Hopf {
             line_end: (45_f64.to_radians(), 2_f64 * std::f64::consts::PI),
             n_points_per_loop: 100,
             n_loops: 10,
-            n_tries: 2000,
         }
     }
 }
@@ -63,9 +60,6 @@ impl Default for Hopf {
 // #[reflect(Default, Debug, Clone)]
 #[derive(Clone, Debug)]
 pub struct HopfMeshBuilder {
-    /// The [`Hopf`] shape.
-    hopf: Hopf,
-    next_index: u32,
     /// Deduping mechanism.
     pub vertex_deduple: HashMap<Vertex, u32>,
     /// A list of point in the mesh.
@@ -74,14 +68,24 @@ pub struct HopfMeshBuilder {
     pub triangle_store: Indices,
     /// For each entry in the vertex buffer there is a corresponding normal.
     pub normals_store: Vec<Vec3>,
+    /// Per vertex UVs.
+    pub uv_store: Vec<[f32; 2]>,
+    /// Number of tries when building a individual loop.
+    pub n_tries: u32,
+    /// A scalar applied to each vertex.
+    pub scale: f64,
+
+    // The last [`Hopf`] shape constructed.
+    hopf: Hopf,
+    next_index: u32,
 }
 
 impl HopfMeshBuilder {
-    /// If the point has been seen before it will be deduplicated.
-    /// and a exiting index into the vertex buffer will be returned.
+    /// If the point has been seen before it will be deduplicated
+    /// and a exiting vertex buffer index will be returned.
     pub fn add_vertex(&mut self, p: &Vertex) -> (bool, u32) {
-        if let Some(v) = self.vertex_deduple.get(p) {
-            (false, *v)
+        if let Some(index) = self.vertex_deduple.get(p) {
+            (false, *index)
         } else {
             // first time seeing this points
             // add it to buffer and the store.
@@ -89,6 +93,8 @@ impl HopfMeshBuilder {
             self.vertex_deduple.insert(*p, index);
             self.vertex_buffer
                 .push(Vec3::new(p.0.x as f32, p.0.y as f32, p.0.z as f32));
+            // Could scale a x, y value into  uv space.
+            self.uv_store.push([0.5, 0.5]); // Placeholder for UVs
             self.next_index += 1;
             (true, index)
         }
@@ -142,6 +148,7 @@ impl HopfMeshBuilder {
         n_points_per_loop: u32,
         n_loops: u32,
         n_tries: u32,
+        scale: f64,
     ) -> Self {
         Self {
             hopf: Hopf {
@@ -149,31 +156,30 @@ impl HopfMeshBuilder {
                 line_end: *line_end,
                 n_points_per_loop,
                 n_loops,
-                n_tries,
             },
             next_index: 1_u8.into(),
             vertex_deduple: HashMap::default(),
             vertex_buffer: Vec::new(),
             triangle_store: Indices::U32(Vec::new()),
             normals_store: Vec::new(),
+            uv_store: Vec::new(),
+            n_tries,
+            scale,
         }
     }
 
     /// Creates an hopf mesh with the given number of subdivisions.
     ///
-    /// The number of faces quadruples with each subdivision.
-    /// If there are `80` or more subdivisions, the vertex count will be too large,
-    /// and an [`HopfMeshError`] is returned.
     ///
-    /// A good default is `5` subdivisions.
-    pub fn construct(
-        &mut self,
-        n_loops: u32,
-        n_points_per_loop: u32,
-        scale: f64,
-    ) -> Result<Mesh, HopfMeshError> {
-        const NUM_TRIES: u32 = 2000_u32;
-
+    /// This logic could be folded into `HopfBuilder::build()` but build cannot fail.
+    /// and I want better error reporting.
+    ///
+    /// # Errors
+    ///
+    /// `HopfMeshError::LineError` if  `line_start` and `line_end` are identical.
+    ///
+    /// `HopfMeshError::NRetriesExceeded` if any loop cannot be constructed.
+    pub fn construct(mut self) -> Result<Self, HopfMeshError> {
         // weave is a series of seed points which will be transformed into fibres.
         let line_start = self.hopf.line_start;
         let line_end = self.hopf.line_end;
@@ -188,10 +194,9 @@ impl HopfMeshBuilder {
         let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64, 4.0 * std::f64::consts::PI);
 
         let (mut points_last, _alphas) = fibre_last
-            // .build(NUM_POINTS_PER_LOOP, NUM_TRIES)
-            .build(scale, self.hopf.n_points_per_loop, NUM_TRIES)
+            .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
             .map_err(|_| HopfMeshError::NRetriesExceeded {
-                n_tries: NUM_TRIES,
+                n_tries: self.n_tries,
                 lat: initial_lat,
                 lon: initial_lon,
             })?;
@@ -200,9 +205,9 @@ impl HopfMeshBuilder {
             let fibre = Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
 
             let (points, _alphas) = fibre
-                .build(scale, self.hopf.n_points_per_loop, NUM_TRIES)
+                .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
                 .map_err(|_| HopfMeshError::NRetriesExceeded {
-                    n_tries: NUM_TRIES,
+                    n_tries: self.n_tries,
                     lat,
                     lon,
                 })?;
@@ -229,15 +234,7 @@ impl HopfMeshBuilder {
             points_last = points;
         }
 
-        Ok(
-            Mesh::new(
-                PrimitiveTopology::TriangleList,
-                RenderAssetUsages::default(),
-            )
-            .with_inserted_indices(self.triangle_store.clone())
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.vertex_buffer.clone())
-            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals_store.clone()), // .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs))
-        )
+        Ok(self)
     }
 }
 
@@ -249,12 +246,14 @@ impl MeshBuilder for HopfMeshBuilder {
     /// Panics if the sphere is a [`SphereKind::Ico`] with a subdivision count
     /// that is greater than or equal to `80` because there will be too many vertices.
     fn build(&self) -> Mesh {
-        todo!();
-        //   SphereKind::Ico { subdivisions } => self.ico(subdivisions).unwrap();
-        //     match self.kind {
-        //         SphereKind::Ico { subdivisions } => self.ico(subdivisions).unwrap(),
-        //         SphereKind::Uv { sectors, stacks } => self.uv(sectors, stacks),
-        //     }
+        Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        )
+        .with_inserted_indices(self.triangle_store.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.vertex_buffer.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals_store.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv_store.clone())
     }
 }
 
@@ -269,6 +268,9 @@ impl Meshable for Hopf {
             vertex_buffer: Vec::new(),
             triangle_store: Indices::U32(Vec::new()),
             normals_store: Vec::new(),
+            uv_store: Vec::new(),
+            n_tries: 2000,
+            scale: 1_f64,
         }
     }
 }
