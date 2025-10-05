@@ -32,7 +32,7 @@ impl Display for NTriesExceedError {
 }
 impl Fibre {
     /// Create a new fibre.
-    #[must_use]
+    #[must_use = "Not using the returned, is the same as doing nothing at all."]
     pub fn new(theta: f64, phi: f64, mut alpha_start: f64, mut alpha_end: f64) -> Self {
         alpha_start = alpha_start.clamp(0.0, 4.0 * std::f64::consts::PI);
         alpha_end = alpha_end.clamp(alpha_start, 4.0 * std::f64::consts::PI);

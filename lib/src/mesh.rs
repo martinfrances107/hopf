@@ -13,8 +13,8 @@ pub fn weave<'a>(
 
     (0..n_loops).map(move |index| {
         let i = f64::from(index);
-        let lat = p1.0 + i * lat_step;
-        let lon = p1.1 + i * long_step;
+        let lat = i.mul_add(lat_step, p1.0);
+        let lon = i.mul_add(long_step, p1.1);
         (lat, lon)
     })
 }

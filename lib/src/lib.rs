@@ -67,7 +67,7 @@ impl Mul<f64> for Vertex {
 ///
 /// # Panics
 ///  If the point is at infinity or -infinity (X3 == 1)
-#[must_use]
+#[must_use = "Not using the returned, will drop the computation."]
 #[allow(non_snake_case)]
 pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
     if (1_f64 - X3).abs() < f64::EPSILON {

@@ -140,7 +140,7 @@ impl HopfMeshBuilder {
 
 impl HopfMeshBuilder {
     /// Creates a new [`HopfMeshBuilder`].
-    #[must_use]
+    #[must_use = "Not using the returned, is the same a doing nothing at all."]
     #[inline]
     pub fn new(
         line_start: &(f64, f64),
