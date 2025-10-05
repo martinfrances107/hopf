@@ -33,6 +33,7 @@ use std::f32::consts::PI;
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
 use bevy_hopf::HopfPlugin;
 use bevy_hopf::hopf::HopfMeshBuilder;
+#[cfg(feature = "debug_normals")]
 use bevy_mesh::{PrimitiveTopology, VertexAttributeValues};
 
 fn main() {
@@ -89,47 +90,49 @@ fn setup_scene(
         .expect("Failed to construct mesh")
         .build();
 
-    // Create a hair mesh to show the normals.
-    let positions = if let Some(VertexAttributeValues::Float32x3(positions)) =
-        hopf_mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+    #[cfg(feature = "debug_normals")]
     {
-        positions
-    } else {
-        panic!("Expected positions to be Float32x3");
-    };
+        // Create a hair mesh to show the normals.
+        let positions = if let Some(VertexAttributeValues::Float32x3(positions)) =
+            hopf_mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        {
+            positions
+        } else {
+            panic!("Expected positions to be Float32x3");
+        };
 
-    // let normals = hopf_mesh.attribute(Mesh::ATTRIBUTE_NORMAL).as_slice();
-    let normals = if let Some(VertexAttributeValues::Float32x3(normals)) =
-        hopf_mesh.attribute(Mesh::ATTRIBUTE_NORMAL)
-    {
-        normals
-    } else {
-        panic!("Expected normals to be Float32x3");
-    };
+        // let normals = hopf_mesh.attribute(Mesh::ATTRIBUTE_NORMAL).as_slice();
+        let normals = if let Some(VertexAttributeValues::Float32x3(normals)) =
+            hopf_mesh.attribute(Mesh::ATTRIBUTE_NORMAL)
+        {
+            normals
+        } else {
+            panic!("Expected normals to be Float32x3");
+        };
 
-    // Create a new mesh for the normal lines
-    let mut normal_lines = Mesh::new(PrimitiveTopology::LineList, Default::default());
+        // Create a new mesh for the normal lines
+        let mut normal_lines = Mesh::new(PrimitiveTopology::LineList, Default::default());
 
-    // For each vertex, create a line from the vertex to vertex + normal
-    let mut line_positions = Vec::new();
-    for (pos, normal) in positions.iter().zip(normals.iter()) {
-        // Scale the normal for better visibility
+        // For each vertex, create a line from the vertex to vertex + normal
+        let mut line_positions = Vec::new();
+        for (pos, normal) in positions.iter().zip(normals.iter()) {
+            // Scale the normal for better visibility
 
-        // let scaled_normal = *normal * 1.0;
-        let scaled_normal = normal;
-        // let end_pos = *pos + *scaled_normal;
-        let end_pos = [
-            pos[0] + 0.1 * scaled_normal[0],
-            pos[1] + 0.1 * scaled_normal[1],
-            pos[2] + 0.1 * scaled_normal[2],
-        ];
-        line_positions.push(*pos);
-        line_positions.push(end_pos);
+            // let scaled_normal = *normal * 1.0;
+            let scaled_normal = normal;
+            // let end_pos = *pos + *scaled_normal;
+            let end_pos = [
+                pos[0] + 0.1 * scaled_normal[0],
+                pos[1] + 0.1 * scaled_normal[1],
+                pos[2] + 0.1 * scaled_normal[2],
+            ];
+            line_positions.push(*pos);
+            line_positions.push(end_pos);
+        }
+
+        // Insert the line positions as the attribute
+        normal_lines.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_positions);
     }
-
-    // Insert the line positions as the attribute
-    normal_lines.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_positions);
-
     let sphere = Sphere::default().mesh().ico(5).unwrap();
     let shapes = [meshes.add(sphere), meshes.add(hopf_mesh)];
 
@@ -157,23 +160,26 @@ fn setup_scene(
             .observe(rotate_on_drag);
     }
 
-    let normal_lines_handle = meshes.add(normal_lines);
-    commands.spawn((
-        Mesh3d(normal_lines_handle),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::from(RED_500),
-            unlit: true,
-            ..Default::default()
-        })),
-        Transform::from_xyz(
-            -SHAPES_X_EXTENT / 2. + 1 as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
-            3.0,
-            Z_EXTENT / 2.,
-        )
-        .with_scale(Vec3::splat(3.0))
-        .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-        Shape,
-    ));
+    #[cfg(feature = "debug_normals")]
+    {
+        let normal_lines_handle = meshes.add(normal_lines);
+        commands.spawn((
+            Mesh3d(normal_lines_handle),
+            MeshMaterial3d(materials.add(StandardMaterial {
+                base_color: Color::from(RED_500),
+                unlit: true,
+                ..Default::default()
+            })),
+            Transform::from_xyz(
+                -SHAPES_X_EXTENT / 2. + 1 as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
+                3.0,
+                Z_EXTENT / 2.,
+            )
+            .with_scale(Vec3::splat(3.0))
+            .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            Shape,
+        ));
+    }
 
     // Ground
     commands.spawn((
