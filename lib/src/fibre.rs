@@ -72,7 +72,7 @@ impl Fibre {
     ) -> Result<(Vec<Vertex>, Vec<f64>), NTriesExceedError> {
         let fibre = self.projected_fibre();
         // Target number of points per circle.
-        let len = path_length(&fibre, 0_f64, 4_f64 * f64::consts::PI, 10_000);
+        let len = path_length(&fibre, self.alpha_start, self.alpha_end, 10_000);
 
         // Target distance to travel per step;
         let target_dist = len / f64::from(target_samples);
