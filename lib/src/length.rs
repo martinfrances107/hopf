@@ -16,15 +16,13 @@ pub(crate) fn path_length(
     let mut f_last = f(alpha_start);
     let step = (alpha_end - alpha_start) / f64::from(n);
 
-    let mut len = 0_f64;
-    for _ in 1..n {
+    (1..n).fold(0_f64, |acc, _| {
         alpha += step;
         let f = f(alpha);
         let d = f_last.0.distance(f.0);
-        len += d;
         f_last = f;
-    }
-    len
+        acc + d
+    })
 }
 
 #[cfg(test)]
