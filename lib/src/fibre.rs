@@ -21,15 +21,22 @@ pub struct Fibre {
 ///
 /// The step size adjustment is oscillating between two values.
 #[derive(Debug, Clone)]
-pub struct NTriesExceedError;
+// pub struct NTriesExceedError;
+pub enum FibreBuildError {
+    /// Too many tries adjusting step size.
+    NTriesExceed(u32),
+    /// Too few tries allowed adjusting step size.
+    NTriesTooLow(u32),
+}
 
-impl Error for NTriesExceedError {}
+impl Error for FibreBuildError {}
 
-impl Display for NTriesExceedError {
+impl Display for FibreBuildError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "SuperError is here!")
     }
 }
+
 impl Fibre {
     /// Create a new fibre.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
@@ -69,15 +76,20 @@ impl Fibre {
         scale: f64,
         target_samples: u32,
         n_tries: u32,
-    ) -> Result<(Vec<Vertex>, Vec<f64>), NTriesExceedError> {
+    ) -> Result<(Vec<Vertex>, Vec<f64>), FibreBuildError> {
+        const TOLLERANCE: f64 = 0.001_f64;
+
         let fibre = self.projected_fibre();
         // Target number of points per circle.
         let len = path_length(&fibre, self.alpha_start, self.alpha_end, 10_000);
 
         // Target distance to travel per step;
         let target_dist = len / f64::from(target_samples);
-        let distance_min = 0.999 * target_dist;
-        let distance_max = 1.001 * target_dist;
+
+        let delta = TOLLERANCE * target_dist;
+
+        let distance_min = target_dist - delta;
+        let distance_max = target_dist + delta;
 
         // Change in alpha. Dynamically adjusted step size.
         let mut step = 4_f64 * f64::consts::PI / f64::from(target_samples);
@@ -88,11 +100,12 @@ impl Fibre {
         let mut points = Vec::with_capacity(target_samples as usize);
         let mut alphas = Vec::with_capacity(target_samples as usize);
 
+        let mut i;
         'outer: loop {
             // Adjust step size.
             let mut f;
             let mut alpha;
-            let mut i = 0;
+            i = 0;
             'adaptive_loop: loop {
                 // paranoia - clamp
                 alpha = (alpha_last + step).clamp(self.alpha_start, self.alpha_end);
@@ -114,7 +127,7 @@ impl Fibre {
                 }
 
                 if i > n_tries {
-                    return Err(NTriesExceedError);
+                    return Err(FibreBuildError::NTriesExceed(n_tries));
                 }
                 i += 1;
             }
@@ -123,10 +136,16 @@ impl Fibre {
             alpha_last = alpha;
             points.push(f * scale);
             alphas.push(alpha);
+
             if alpha >= self.alpha_end {
                 break 'outer;
             }
         }
+
+        // if i != n_tries {
+        //     return Err(FibreBuildError::NTriesExceed(i));
+        // }
+        println!("Built fibre with {i} ");
         Ok((points, alphas))
     }
 
@@ -166,6 +185,29 @@ mod tests {
         );
 
         match fibre.build(1.0, 1_000, 2000) {
+            Ok((points, _)) => {
+                assert_eq!(points.len(), 1_000);
+            }
+            Err(_) => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn fibre_build_tight_tolerance() {
+        // Numerically unstable test case.
+        // Fibre::build()
+        //
+        // For a given tolerance - Shorter fibre lengths require a tighter delta.
+        let fibre = Fibre::new(
+            5.0_f64.to_radians(),
+            5.0_f64.to_radians(),
+            0_f64,
+            2_f64 * std::f64::consts::PI,
+        );
+
+        match fibre.build(1.0, 1_000, 2_000) {
             Ok((points, _)) => {
                 assert_eq!(points.len(), 1_000);
             }
