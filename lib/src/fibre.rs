@@ -1,3 +1,4 @@
+use core::ops::Range;
 use core::{error::Error, f64};
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -13,8 +14,7 @@ pub struct Fibre {
     phi: f64,
     // alpha is how fibre extends the base space.
     // [0..4PI] is the full fibre.
-    alpha_start: f64,
-    alpha_end: f64,
+    alpha: Range<f64>,
 }
 
 /// Adaptive step size failure
@@ -40,16 +40,11 @@ impl Display for FibreBuildError {
 impl Fibre {
     /// Create a new fibre.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
-    pub fn new(theta: f64, phi: f64, mut alpha_start: f64, mut alpha_end: f64) -> Self {
-        alpha_start = alpha_start.clamp(0.0, 4.0 * std::f64::consts::PI);
-        alpha_end = alpha_end.clamp(alpha_start, 4.0 * std::f64::consts::PI);
+    pub fn new(theta: f64, phi: f64, mut alpha: Range<f64>) -> Self {
+        alpha.start = alpha.start.clamp(0.0, 4.0 * std::f64::consts::PI);
+        alpha.end = alpha.end.clamp(alpha.start, 4.0 * std::f64::consts::PI);
 
-        Self {
-            theta,
-            phi,
-            alpha_start,
-            alpha_end,
-        }
+        Self { theta, phi, alpha }
     }
 
     /// Returns a points on the fibre (uniformly separated).
@@ -81,7 +76,7 @@ impl Fibre {
 
         let fibre = self.projected_fibre();
         // Target number of points per circle.
-        let len = path_length(&fibre, self.alpha_start, self.alpha_end, 10_000);
+        let len = path_length(&fibre, &self.alpha, 10_000);
 
         // Target distance to travel per step;
         let target_dist = len / f64::from(target_samples);
@@ -94,8 +89,8 @@ impl Fibre {
         // Change in alpha. Dynamically adjusted step size.
         let mut step = 4_f64 * f64::consts::PI / f64::from(target_samples);
 
-        let mut f_last = fibre(self.alpha_start);
-        let mut alpha_last = self.alpha_start;
+        let mut f_last = fibre(self.alpha.start);
+        let mut alpha_last = self.alpha.start;
 
         let mut points = Vec::with_capacity(target_samples as usize);
         let mut alphas = Vec::with_capacity(target_samples as usize);
@@ -108,11 +103,11 @@ impl Fibre {
             i = 0;
             'adaptive_loop: loop {
                 // paranoia - clamp
-                alpha = (alpha_last + step).clamp(self.alpha_start, self.alpha_end);
+                alpha = (alpha_last + step).clamp(self.alpha.start, self.alpha.end);
 
                 f = fibre(alpha);
 
-                if alpha >= self.alpha_end {
+                if alpha >= self.alpha.end {
                     break 'adaptive_loop;
                 }
 
@@ -137,7 +132,7 @@ impl Fibre {
             points.push(f * scale);
             alphas.push(alpha);
 
-            if alpha >= self.alpha_end {
+            if alpha >= self.alpha.end {
                 break 'outer;
             }
         }
@@ -180,8 +175,7 @@ mod tests {
         let fibre = Fibre::new(
             5.0_f64.to_radians(),
             5.0_f64.to_radians(),
-            0_f64,
-            4.0 * std::f64::consts::PI,
+            0_f64..4.0 * std::f64::consts::PI,
         );
 
         match fibre.build(1.0, 1_000, 2000) {
@@ -203,8 +197,7 @@ mod tests {
         let fibre = Fibre::new(
             5.0_f64.to_radians(),
             5.0_f64.to_radians(),
-            0_f64,
-            2_f64 * std::f64::consts::PI,
+            0_f64..2_f64 * std::f64::consts::PI,
         );
 
         match fibre.build(1.0, 1_000, 2_000) {

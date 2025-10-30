@@ -22,8 +22,7 @@ fn main() -> Result<(), Error> {
     let fibre = Fibre::new(
         5.0_f64.to_radians(),
         5.0_f64.to_radians(),
-        0_f64,
-        4.0 * std::f64::consts::PI,
+        0_f64..4.0 * std::f64::consts::PI,
     );
 
     let (points, _) = fibre

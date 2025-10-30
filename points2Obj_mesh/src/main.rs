@@ -53,7 +53,7 @@ fn main() -> Result<(), std::io::Error> {
             .next()
             .expect("Must have more than one seed to make a mesh");
 
-        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64, 4.0 * std::f64::consts::PI);
+        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64..4.0 * std::f64::consts::PI);
 
         let (mut points_last, _alphas) = fibre_last
             .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
@@ -64,7 +64,7 @@ fn main() -> Result<(), std::io::Error> {
         let mut quads = vec![];
 
         for (lat, lon) in seed_iter {
-            let fibre = Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
+            let fibre = Fibre::new(lat, lon, 0_f64..4.0 * std::f64::consts::PI);
 
             let (points, _alphas) =
                 fibre
