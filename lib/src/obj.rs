@@ -9,10 +9,11 @@ use glam::DVec3;
 #[derive(Debug)]
 pub struct Obj {
     next_index: usize,
-    /// Deduping mechanism.
+    /// A deduplicated list of points which
+    /// will be sorted and copied into a vertex buffer.
     pub vertex_store: HashMap<Vertex, usize>,
-    /// all point that appear in a obj file.
-    pub vertex_buffer: Vec<Vertex>,
+    // /// all point that appear in a obj file.
+    // pub vertex_buffer: Vec<Vertex>,
     /// A list of quads keyed by object name.
     pub quad_store: HashMap<String, Vec<[usize; 4]>>,
 }
@@ -20,9 +21,9 @@ pub struct Obj {
 impl Default for Obj {
     fn default() -> Self {
         Self {
+            // wavefront Obj file start at index 1.
             next_index: 1,
             vertex_store: HashMap::default(),
-            vertex_buffer: Vec::new(),
             quad_store: HashMap::default(),
         }
     }
@@ -31,7 +32,7 @@ impl Default for Obj {
 impl Obj {
     /// Add a point to the obj file.
     /// If the point has been seen before it will be deduplicated.
-    /// and a exiting index into the vertex buffer will be returned.
+    /// and the exiting index into the vertex buffer will be returned.
     pub fn add_vertex(&mut self, p: &Vertex) -> usize {
         if let Some(v) = self.vertex_store.get(p) {
             *v
@@ -40,7 +41,6 @@ impl Obj {
             // add it to buffer and the store.
             let index = self.next_index;
             self.vertex_store.insert(*p, index);
-            self.vertex_buffer.push(*p);
             self.next_index += 1;
             index
         }
@@ -58,12 +58,18 @@ impl Obj {
     ///
     /// # Panics
     ///   When a vertex written to the store, cannot be read.
-    pub fn write_out<W>(&mut self, out: &mut BufWriter<W>) -> Result<(), std::io::Error>
+    pub fn write<W>(mut self, out: &mut BufWriter<W>) -> Result<(), std::io::Error>
     where
         W: ?Sized + std::io::Write,
     {
+        let mut vertex_buffer = self.vertex_store.drain().collect::<Vec<_>>();
+        vertex_buffer.sort_by(|a, b| {
+            // sort by value
+            a.1.cmp(&b.1)
+        });
+
         // Root vertex list.
-        for Vertex(DVec3 { x, y, z }) in &self.vertex_buffer {
+        for (Vertex(DVec3 { x, y, z }), _) in vertex_buffer {
             writeln!(out, "v {x} {y} {z}")?;
         }
 
