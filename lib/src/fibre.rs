@@ -145,7 +145,7 @@ impl Fibre {
         // if i != n_tries {
         //     return Err(FibreBuildError::NTriesExceed(i));
         // }
-        println!("Built fibre with {i} ");
+
         Ok((points, alphas))
     }
 
