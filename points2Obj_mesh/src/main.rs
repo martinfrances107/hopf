@@ -77,6 +77,14 @@ fn main() -> Result<(), std::io::Error> {
 
             assert_eq!(points.len(), NUM_POINTS_PER_LOOP as usize);
 
+            //  0 - 3
+            //  | / |
+            //  |/  |
+            //  1 --2
+            //
+            // Given a quad ( points 0, 1, 2, 3 )
+            // form triangles (0,1,3) and (1,2,3)
+            // add triangles will de-dupe points and compute normals.
             for i in 1..NUM_POINTS_PER_LOOP as usize {
                 let i0 = obj.add_vertex(&points_last[i - 1]);
                 let i1 = obj.add_vertex(&points_last[i]);
@@ -92,7 +100,7 @@ fn main() -> Result<(), std::io::Error> {
         obj.push_quads(name, quads);
     }
 
-    obj.write_out(&mut writer)
+    obj.write(&mut writer)
         .map_err(|_| Error::other("Error writing output."))?;
     Ok(())
 }
