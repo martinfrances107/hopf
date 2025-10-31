@@ -28,6 +28,7 @@ use std::ops::Mul;
 
 use bytemuck::{Pod, Zeroable};
 use glam::DVec3;
+use glam::Vec3;
 
 /// Hashable version of a point in E3.
 #[repr(transparent)]
@@ -40,6 +41,16 @@ impl PartialEq for Vertex {
         self.0.x.to_bits() == other.0.x.to_bits()
             && self.0.y.to_bits() == other.0.y.to_bits()
             && self.0.z.to_bits() == other.0.z.to_bits()
+    }
+}
+
+#[allow(clippy::cast_possible_truncation)]
+impl From<Vertex> for Vec3 {
+    fn from(v: Vertex) -> Self {
+        let x = v.0.x as f32;
+        let y = v.0.y as f32;
+        let z = v.0.z as f32;
+        Self::new(x, y, z)
     }
 }
 
