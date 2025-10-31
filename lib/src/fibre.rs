@@ -1,20 +1,34 @@
 use core::ops::Range;
 use core::{error::Error, f64};
+
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::ops::RangeInclusive;
 
 use crate::Vertex;
 use crate::{length::path_length, project};
+
+static LAT_RANGE: Range<f64> = -core::f64::consts::PI / 2.0..core::f64::consts::PI / 2.0;
+static LON_RANGE: RangeInclusive<f64> = 0_f64..=core::f64::consts::TAU;
 
 /// A fibre is a point on s(2)
 /// where alpha extends the fibre from the base space.
 #[derive(Debug)]
 pub struct Fibre {
-    theta: f64,
-    phi: f64,
+    // latittude ( radians ).
+    lat: f64,
+    // longitude ( radians).
+    lon: f64,
+
     // alpha is how fibre extends the base space.
     // [0..4PI] is the full fibre.
     alpha: Range<f64>,
+}
+
+/// Setting extarcted from polar coords.
+struct Settings {
+    η: f64,
+    ξ1: f64,
 }
 
 /// Adaptive step size failure
@@ -40,11 +54,14 @@ impl Display for FibreBuildError {
 impl Fibre {
     /// Create a new fibre.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
-    pub fn new(theta: f64, phi: f64, mut alpha: Range<f64>) -> Self {
+    pub fn new(lat: f64, lon: f64, mut alpha: Range<f64>) -> Self {
+        debug_assert!(LAT_RANGE.contains(&lat));
+        debug_assert!(LON_RANGE.contains(&lon));
+
         alpha.start = alpha.start.clamp(0.0, 4.0 * std::f64::consts::PI);
         alpha.end = alpha.end.clamp(alpha.start, 4.0 * std::f64::consts::PI);
 
-        Self { theta, phi, alpha }
+        Self { lat, lon, alpha }
     }
 
     /// Returns a points on the fibre (uniformly separated).
@@ -144,6 +161,30 @@ impl Fibre {
         Ok((points, alphas))
     }
 
+    // Solve for ξ1 and η.
+    // Given a point on s2 (lat, long)
+    //
+    // z = cos(2η)
+    // x = sin(2η)cos(ξ1)
+    // y = sin(2η)sin(ξ1)
+
+    fn extract_settings(&self) -> Settings {
+        let (sin_lat, cos_lat) = self.lat.sin_cos();
+        let cos_lon = self.lon.cos();
+
+        // polar coords to cartesian.
+        let x = cos_lat * cos_lon;
+        // let _y = cos_lat * sin_lon;
+        let z = sin_lat;
+
+        let η = z.acos() / 2.0;
+        let sin2n = (2.0 * η).sin();
+        let x_div_sin2n = x / sin2n;
+        let ξ1 = (x_div_sin2n).acos();
+
+        Settings { η, ξ1 }
+    }
+
     /// Transform a "time", t parameter into a point in E^3
     ///
     /// <https://en.wikipedia.org/wiki/Hopf_fibration>
@@ -152,14 +193,16 @@ impl Fibre {
     /// <https://rust-lang.github.io/rfcs/3617-precise-capturing.html>
     #[allow(non_snake_case)]
     pub fn projected_fibre(&self) -> impl use<> + Fn(f64) -> Vertex {
-        let phi = self.phi;
-        let theta = self.theta;
-        move |t| {
-            let X0 = f64::midpoint(t, phi).cos() * (theta / 2_f64).sin();
-            let X1 = f64::midpoint(t, phi).sin() * (theta / 2_f64).sin();
-            let X2 = ((t - phi) / 2_f64).cos() * (theta / 2_f64).cos();
-            let X3 = ((t - phi) / 2_f64).sin() * (theta / 2_f64).cos();
-            project(X0, X1, X2, X3)
+        let Settings { η, ξ1 } = self.extract_settings();
+
+        let (sin_η, cos_η) = η.sin_cos();
+        // The domain of ξ2 is 0..4PI
+        move |ξ2| {
+            let X1 = f64::midpoint(ξ1, ξ2).cos() * sin_η;
+            let X2 = f64::midpoint(ξ1, ξ2).sin() * sin_η;
+            let X3 = ((ξ2 - ξ1) / 2_f64).cos() * cos_η;
+            let X4 = ((ξ2 - ξ1) / 2_f64).sin() * cos_η;
+            project(X1, X2, X3, X4)
         }
     }
 }
