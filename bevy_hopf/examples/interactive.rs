@@ -30,7 +30,11 @@
 
 use std::f32::consts::PI;
 
-use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
+use bevy::{
+    color::palettes::{css::WHITE, tailwind::*},
+    picking::pointer::PointerInteraction,
+    prelude::*,
+};
 use bevy_hopf::HopfPlugin;
 use bevy_hopf::hopf::HopfMeshBuilder;
 #[cfg(feature = "debug_normals")]
@@ -76,19 +80,30 @@ fn setup_scene(
     let n_points_per_loop = 80;
     let n_tries = 2000;
 
-    let mut hopf_builder = HopfMeshBuilder::new(
+    let hopf_builder = HopfMeshBuilder::new(
         line_start,
         line_end,
         n_points_per_loop,
         n_loops,
         n_tries,
-        0.03,
+        0.3,
     );
 
     let hopf_mesh = hopf_builder
         .construct()
         .expect("Failed to construct mesh")
         .build();
+
+    // let hopf_mat = materials.add(Color::WHITE);
+    let hopf_matl = materials.add(StandardMaterial {
+        base_color: Color::from(WHITE),
+        // Auto generate normals only.
+        double_sided: true,
+        // Remove optimistion.
+        cull_mode: None,
+        unlit: true,
+        ..Default::default()
+    });
 
     // Create a new mesh for the normal lines
     #[cfg(feature = "debug_normals")]
@@ -153,16 +168,20 @@ fn setup_scene(
         ));
     }
     let sphere = Sphere::default().mesh().ico(5).unwrap();
-    let shapes = [meshes.add(sphere), meshes.add(hopf_mesh)];
+
+    let shapes = [
+        (meshes.add(sphere), white_matl.clone()),
+        (meshes.add(hopf_mesh), hopf_matl.clone()),
+    ];
 
     let num_shapes = shapes.len();
 
     // Spawn the shapes. The meshes will be pickable by default.
-    for (i, shape) in shapes.into_iter().enumerate() {
+    for (i, (shape, material)) in shapes.into_iter().enumerate() {
         commands
             .spawn((
                 Mesh3d(shape),
-                MeshMaterial3d(white_matl.clone()),
+                MeshMaterial3d(material),
                 Transform::from_xyz(
                     -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
                     3.0,

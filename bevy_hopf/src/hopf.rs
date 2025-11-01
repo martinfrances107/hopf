@@ -61,13 +61,9 @@ impl Default for Hopf {
 #[derive(Clone, Debug)]
 pub struct HopfMeshBuilder {
     /// Deduping mechanism.
-    pub vertex_deduple: HashMap<Vertex, u32>,
-    /// A list of point in the mesh.
-    pub vertex_buffer: Vec<Vec3>,
+    pub vertex_store: HashMap<Vertex, u32>,
     /// [1, 2, 3, 4, 5, 6] implies two triangles (1,2,3) and (4,5,6)
     pub triangle_store: Indices,
-    /// For each entry in the vertex buffer there is a corresponding normal.
-    pub normals_store: Vec<Vec3>,
     /// Per vertex UVs.
     pub uv_store: Vec<[f32; 2]>,
     /// Number of tries when building a individual loop.
@@ -83,58 +79,33 @@ pub struct HopfMeshBuilder {
 impl HopfMeshBuilder {
     /// If the point has been seen before it will be deduplicated
     /// and a exiting vertex buffer index will be returned.
-    pub fn add_vertex(&mut self, p: &Vertex) -> (bool, u32) {
-        if let Some(index) = self.vertex_deduple.get(p) {
-            (false, *index)
+    pub fn add_vertex(&mut self, p: &Vertex) -> u32 {
+        if let Some(index) = self.vertex_store.get(p) {
+            *index
         } else {
             // first time seeing this points
             // add it to buffer and the store.
             let index = self.next_index;
-            self.vertex_deduple.insert(*p, index);
-            self.vertex_buffer
-                .push(Vec3::new(p.0.x as f32, p.0.y as f32, p.0.z as f32));
+            self.vertex_store.insert(*p, index);
+            // self.vertex_buffer
+            //     .push(Vec3::new(p.0.x as f32, p.0.y as f32, p.0.z as f32));
             // Could scale a x, y value into  uv space.
             self.uv_store.push([0.5, 0.5]); // Placeholder for UVs
             self.next_index += 1;
-            (true, index)
+            index
         }
     }
 
     /// Add a triangle to the mesh.
     /// The points will be de-duped and normals computed.
     pub fn add_triangle(&mut self, p0: &Vertex, p1: &Vertex, p2: &Vertex) {
-        let (is_new0, i0) = self.add_vertex(p0);
-        let (is_new1, i1) = self.add_vertex(p1);
-        let (is_new2, i2) = self.add_vertex(p2);
+        let i0 = self.add_vertex(p0);
+        let i1 = self.add_vertex(p1);
+        let i2 = self.add_vertex(p2);
         // Push the triangle ( anti-clockwise winding order ).
         self.triangle_store.push(i0);
         self.triangle_store.push(i1);
         self.triangle_store.push(i2);
-
-        // Compute the normal vector from the cross product of it two edges.
-        if is_new0 {
-            let u = p1.0 - p0.0;
-            let v = p2.0 - p0.0;
-
-            let n = u.cross(v);
-            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
-            self.normals_store.push(n);
-        }
-        if is_new1 {
-            let u = p2.0 - p1.0;
-            let v = p0.0 - p1.0;
-            let n = u.cross(v);
-            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
-            self.normals_store.push(n);
-        }
-
-        if is_new2 {
-            let u = p0.0 - p2.0;
-            let v = p1.0 - p2.0;
-            let n = u.cross(v);
-            let n = Vec3::new(n.x as f32, n.y as f32, n.z as f32).normalize();
-            self.normals_store.push(n);
-        }
     }
 }
 
@@ -157,11 +128,10 @@ impl HopfMeshBuilder {
                 n_points_per_loop,
                 n_loops,
             },
-            next_index: 1_u8.into(),
-            vertex_deduple: HashMap::default(),
-            vertex_buffer: Vec::new(),
+            // Unlike Wavefront OBJ files indexed start at zero
+            next_index: 0,
+            vertex_store: HashMap::default(),
             triangle_store: Indices::U32(Vec::new()),
-            normals_store: Vec::new(),
             uv_store: Vec::new(),
             n_tries,
             scale,
@@ -191,7 +161,7 @@ impl HopfMeshBuilder {
             lines_end: line_end,
         })?;
 
-        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64, 4.0 * std::f64::consts::PI);
+        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64..4.0 * std::f64::consts::PI);
 
         let (mut points_last, _alphas) = fibre_last
             .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
@@ -202,7 +172,7 @@ impl HopfMeshBuilder {
             })?;
 
         for (lat, lon) in weave {
-            let fibre = Fibre::new(lat, lon, 0_f64, 4.0 * std::f64::consts::PI);
+            let fibre = Fibre::new(lat, lon, 0_f64..4.0 * std::f64::consts::PI);
 
             let (points, _alphas) = fibre
                 .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
@@ -246,14 +216,31 @@ impl MeshBuilder for HopfMeshBuilder {
     /// Panics if the sphere is a [`SphereKind::Ico`] with a subdivision count
     /// that is greater than or equal to `80` because there will be too many vertices.
     fn build(&self) -> Mesh {
-        Mesh::new(
+        // Construct a vertex buffer from our deduplicating hash structure
+        //
+        // Three loop over each vertex!  - Is there are better way?
+        // 1) Conversion of hash into a vector
+        // 2) Sorting the vector
+        // 3) Downcasting into DVec3 into Vec3.
+        let mut keyed_vertex_buffer = self.vertex_store.iter().collect::<Vec<_>>();
+        keyed_vertex_buffer.sort_by(|a, b| a.1.cmp(b.1));
+
+        let vertex_buffer: Vec<Vec3> = keyed_vertex_buffer
+            .iter()
+            .map(|(point, _)| (**point).into())
+            .collect();
+
+        let mut mesh = Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
         )
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertex_buffer)
         .with_inserted_indices(self.triangle_store.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.vertex_buffer.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.normals_store.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv_store.clone())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv_store.clone());
+
+        mesh.duplicate_vertices();
+        mesh.compute_flat_normals();
+        mesh
     }
 }
 
@@ -263,14 +250,12 @@ impl Meshable for Hopf {
     fn mesh(&self) -> Self::Output {
         HopfMeshBuilder {
             hopf: self.clone(),
-            next_index: 1,
-            vertex_deduple: HashMap::default(),
-            vertex_buffer: Vec::new(),
+            next_index: 0,
+            vertex_store: HashMap::default(),
             triangle_store: Indices::U32(Vec::new()),
-            normals_store: Vec::new(),
             uv_store: Vec::new(),
             n_tries: 2000,
-            scale: 1_f64,
+            scale: 3_f64,
         }
     }
 }
