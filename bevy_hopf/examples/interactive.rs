@@ -56,7 +56,6 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     // Set up the materials.
-    // let white_matl = materials.add(Color::WHITE);
     let white_matl = materials.add(Color::WHITE);
     let ground_matl = materials.add(Color::from(GRAY_300));
     let hover_matl = materials.add(Color::from(CYAN_300));
@@ -80,41 +79,66 @@ fn setup_scene(
         .expect("Failed to construct mesh")
         .build();
 
-    let mut hopf_matl: StandardMaterial = Color::WHITE.into();
-    hopf_matl.cull_mode = None;
-    hopf_matl.double_sided = true;
-    let hopf_matl = materials.add(hopf_matl);
+    let mut hopf_white_matl: StandardMaterial = Color::WHITE.into();
+    hopf_white_matl.cull_mode = None;
+    hopf_white_matl.double_sided = true;
+    let hopf_white_matl = materials.add(hopf_white_matl);
+
+    let mut hopf_hover_matl: StandardMaterial = Color::from(CYAN_300).into();
+    hopf_hover_matl.cull_mode = None;
+    hopf_hover_matl.double_sided = true;
+    let hopf_hover_matl = materials.add(hopf_hover_matl);
+
+    let mut hopf_pressed_matl: StandardMaterial = Color::from(YELLOW_300).into();
+    hopf_pressed_matl.cull_mode = None;
+    hopf_pressed_matl.double_sided = true;
+    let hopf_pressed_matl = materials.add(hopf_pressed_matl);
 
     let sphere = Sphere::default().mesh().ico(5).unwrap();
 
-    let shapes = [
-        (Vec3::splat(3.0), meshes.add(sphere), white_matl.clone()),
-        (Vec3::splat(0.8), meshes.add(hopf_mesh), hopf_matl.clone()),
-    ];
+    // Spherical selector
+    commands
+        .spawn((
+            Mesh3d(meshes.add(sphere)),
+            MeshMaterial3d(white_matl.clone()),
+            Transform::from_xyz(
+                -SHAPES_X_EXTENT / 2. + 0 as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
+                3.0,
+                Z_EXTENT / 2.,
+            )
+            .with_scale(Vec3::splat(3.0))
+            .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            Shape,
+        ))
+        .observe(update_material_on::<Pointer<Over>>(hover_matl.clone()))
+        .observe(update_material_on::<Pointer<Out>>(white_matl))
+        .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
+        .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
+        .observe(rotate_on_drag);
 
-    let num_shapes = shapes.len();
-
-    // Spawn the shapes. The meshes will be pickable by default.
-    for (i, (scale, shape, material)) in shapes.into_iter().enumerate() {
-        commands
-            .spawn((
-                Mesh3d(shape),
-                MeshMaterial3d(material),
-                Transform::from_xyz(
-                    -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
-                    3.0,
-                    Z_EXTENT / 2.,
-                )
-                .with_scale(scale)
-                .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-                Shape,
-            ))
-            .observe(update_material_on::<Pointer<Over>>(hover_matl.clone()))
-            .observe(update_material_on::<Pointer<Out>>(white_matl.clone()))
-            .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
-            .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
-            .observe(rotate_on_drag);
-    }
+    // Hopf mesh
+    commands
+        .spawn((
+            Mesh3d(meshes.add(hopf_mesh)),
+            MeshMaterial3d(hopf_white_matl.clone()),
+            Transform::from_xyz(
+                -SHAPES_X_EXTENT / 2. + 1 as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
+                3.0,
+                Z_EXTENT / 2.,
+            )
+            .with_scale(Vec3::splat(0.8))
+            .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            Shape,
+        ))
+        .observe(update_material_on::<Pointer<Over>>(hopf_hover_matl.clone()))
+        .observe(update_material_on::<Pointer<Out>>(hopf_white_matl.clone()))
+        .observe(update_material_on::<Pointer<Press>>(
+            hopf_pressed_matl.clone(),
+        ))
+        .observe(update_material_on::<Pointer<Release>>(
+            hopf_hover_matl.clone(),
+        ))
+        .observe(rotate_on_drag);
 
     // Ground
     commands.spawn((
