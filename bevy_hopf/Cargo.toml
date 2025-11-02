@@ -19,8 +19,5 @@ bevy_asset = "0.17.1"
 hopf = { path = "../lib" }
 thiserror = "2.0.16"
 
-[features]
-debug_normals = []
-
 [[example]]
 name = "interactive"

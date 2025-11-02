@@ -18,7 +18,7 @@ use hopf::obj::Obj;
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
 
-    const NUM_POINTS_PER_LOOP: usize = 80;
+    const NUM_POINTS_PER_LOOP: usize = 40;
     const NUM_TRIES: u32 = 2000_u32;
     let stdout = std::io::stdout();
     let handle = stdout.lock();

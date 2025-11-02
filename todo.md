@@ -1,18 +1,21 @@
 # TODO
 
-[] - Fix broken mesh ( bevy ) start and stop do not mesh.
+[] - Fix broken mesh ( bevy ) start and end do not mesh.
      point2ply - shows the spacing is ONLY almost always even.
 
-[] - smooth shading. Initial material issue
+    HAVE STOP GAP FIX:
+
+   The temp fix is to change the number of points per loop
+    from 80 to 40. This hides the issue .. I need a general solution
+    ( with tests )
+
+
+[] - Fix smooth shading.
 
 [] -Build a benchmark
     Newton Rahspson / Gradient descent is low.
     Could use binary search with brackets
     No path adjustment?
-
-
-[] - One point on the on the bevy computed Mesh is very large
-     dump the points and look for outlier.
 
 [] - Bevy App user inputs 2 points to form lines
       each line produces a mesh.

@@ -173,10 +173,9 @@ impl HopfMeshBuilder {
             //         lat,
             //         lon,
             //     })?;
+            // debug_assert_eq!(points.len(), 80);
 
             let (points, _alphas) = fibre.build_uniform::<N>();
-
-            debug_assert_eq!(points.len(), 80);
 
             //  0 - 3
             //  | / |
@@ -204,11 +203,6 @@ impl HopfMeshBuilder {
 
 impl MeshBuilder for HopfMeshBuilder {
     /// Builds a [`Mesh`] according to the configuration in `self`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the sphere is a [`SphereKind::Ico`] with a subdivision count
-    /// that is greater than or equal to `80` because there will be too many vertices.
     fn build(&self) -> Mesh {
         // Construct a vertex buffer from our deduplicating hash structure
         //
@@ -228,12 +222,16 @@ impl MeshBuilder for HopfMeshBuilder {
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::default(),
         )
+        // .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv_store.clone())
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertex_buffer)
-        .with_inserted_indices(self.triangle_store.clone())
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv_store.clone());
+        .with_inserted_indices(self.triangle_store.clone());
 
         mesh.duplicate_vertices();
         mesh.compute_flat_normals();
+
+        // To get a broken version of smaooth normals.
+        // Remove duplicate_verticies() (    above )  and add this line
+        // mesh.compute_smooth_normals();
         mesh
     }
 }
