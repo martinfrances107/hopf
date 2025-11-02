@@ -22,12 +22,17 @@ fn main() -> Result<(), Error> {
     let fibre = Fibre::new(
         5.0_f64.to_radians(),
         5.0_f64.to_radians(),
-        0_f64..4.0 * std::f64::consts::PI,
+        0_f64..=4.0 * core::f64::consts::PI,
     );
 
     let (points, _) = fibre
-        .build(1_f64, 20, 2_000_u32)
+        .build(20, 2_000_u32)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
-    generate_ply(&points, &mut writer).map_err(|_| Error::other("Fail to write to buffer"))
+    // let points = fibre.build_raw(1_f64, 20, 2_000_u32);
+
+    // let (points, _) = fibre.build_uniform::<10>(1_f64);
+
+    generate_ply(points.into_iter(), &mut writer)
+        .map_err(|_| Error::other("Fail to write to buffer"))
 }

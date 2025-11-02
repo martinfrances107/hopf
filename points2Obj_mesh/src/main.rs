@@ -18,7 +18,7 @@ use hopf::obj::Obj;
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
 
-    const NUM_POINTS_PER_LOOP: u32 = 80_u32;
+    const NUM_POINTS_PER_LOOP: usize = 80;
     const NUM_TRIES: u32 = 2000_u32;
     let stdout = std::io::stdout();
     let handle = stdout.lock();
@@ -26,7 +26,6 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut meshes = vec![];
 
-    let scale = 0.1;
     // Big outer shell.
     let start = (10_f64.to_radians(), 0_f64);
     let end = (10_f64.to_radians(), 270_f64.to_radians());
@@ -53,27 +52,34 @@ fn main() -> Result<(), std::io::Error> {
             .next()
             .expect("Must have more than one seed to make a mesh");
 
-        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64..4.0 * std::f64::consts::PI);
+        let fibre_last = Fibre::new(
+            initial_lat,
+            initial_lon,
+            0_f64..=4.0 * core::f64::consts::PI,
+        );
 
-        let (mut points_last, _alphas) = fibre_last
-            .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
-            .map_err(|_| {
-                std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
-            })?;
+        // let (mut points_last, _alphas) = fibre_last
+        //     .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
+        //     .map_err(|_| {
+        //         std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
+        //     })?;
+        let (mut points_last, _alphas) = fibre_last.build_uniform::<NUM_POINTS_PER_LOOP>();
 
         let mut quads = vec![];
 
         for (lat, lon) in seed_iter {
-            let fibre = Fibre::new(lat, lon, 0_f64..4.0 * std::f64::consts::PI);
+            let fibre = Fibre::new(lat, lon, 0_f64..=4.0 * core::f64::consts::PI);
 
-            let (points, _alphas) =
-                fibre
-                    .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
-                    .map_err(|_| {
-                        std::io::Error::other(
-                            "Oscillation detected while adaptively constructing a fibre",
-                        )
-                    })?;
+            // let (points, _alphas) =
+            //     fibre
+            // .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
+            // .map_err(|_| {
+            //     std::io::Error::other(
+            //         "Oscillation detected while adaptively constructing a fibre",
+            //     )
+            // })?;
+
+            let (points, _alphas) = fibre.build_uniform::<NUM_POINTS_PER_LOOP>();
 
             assert_eq!(points.len(), NUM_POINTS_PER_LOOP as usize);
 

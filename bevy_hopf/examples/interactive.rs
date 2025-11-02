@@ -28,13 +28,9 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use std::f32::consts::PI;
+use core::f32::consts::PI;
 
-use bevy::{
-    color::palettes::{css::WHITE, tailwind::*},
-    picking::pointer::PointerInteraction,
-    prelude::*,
-};
+use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
 use bevy_hopf::HopfPlugin;
 use bevy_hopf::hopf::HopfMeshBuilder;
 #[cfg(feature = "debug_normals")]
@@ -77,26 +73,18 @@ fn setup_scene(
     // Number of loops.
     let n_loops = 27;
     // Number of points per loop.
-    let n_points_per_loop = 80;
     let n_tries = 2000;
 
-    let hopf_builder = HopfMeshBuilder::new(
-        line_start,
-        line_end,
-        n_points_per_loop,
-        n_loops,
-        n_tries,
-        0.3,
-    );
+    let hopf_builder = HopfMeshBuilder::new(line_start, line_end, n_loops, n_tries);
 
     let hopf_mesh = hopf_builder
-        .construct()
+        .construct::<80>()
         .expect("Failed to construct mesh")
         .build();
 
     // let hopf_mat = materials.add(Color::WHITE);
     let hopf_matl = materials.add(StandardMaterial {
-        base_color: Color::from(WHITE),
+        base_color: Color::WHITE,
         // Auto generate normals only.
         double_sided: true,
         // Remove optimistion.
@@ -170,14 +158,14 @@ fn setup_scene(
     let sphere = Sphere::default().mesh().ico(5).unwrap();
 
     let shapes = [
-        (meshes.add(sphere), white_matl.clone()),
-        (meshes.add(hopf_mesh), hopf_matl.clone()),
+        (Vec3::splat(3.0), meshes.add(sphere), white_matl.clone()),
+        (Vec3::splat(0.8), meshes.add(hopf_mesh), hopf_matl.clone()),
     ];
 
     let num_shapes = shapes.len();
 
     // Spawn the shapes. The meshes will be pickable by default.
-    for (i, (shape, material)) in shapes.into_iter().enumerate() {
+    for (i, (scale, shape, material)) in shapes.into_iter().enumerate() {
         commands
             .spawn((
                 Mesh3d(shape),
@@ -187,7 +175,7 @@ fn setup_scene(
                     3.0,
                     Z_EXTENT / 2.,
                 )
-                .with_scale(Vec3::splat(3.0))
+                .with_scale(scale)
                 .with_rotation(Quat::from_rotation_x(-PI / 4.)),
                 Shape,
             ))

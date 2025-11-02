@@ -40,7 +40,6 @@ pub enum HopfMeshError {
 struct Hopf {
     line_start: (f64, f64),
     line_end: (f64, f64),
-    n_points_per_loop: u32,
     n_loops: u32,
 }
 
@@ -48,8 +47,7 @@ impl Default for Hopf {
     fn default() -> Self {
         Self {
             line_start: (45_f64.to_radians(), 0.0),
-            line_end: (45_f64.to_radians(), 2_f64 * std::f64::consts::PI),
-            n_points_per_loop: 100,
+            line_end: (45_f64.to_radians(), 2_f64 * core::f64::consts::PI),
             n_loops: 10,
         }
     }
@@ -68,8 +66,6 @@ pub struct HopfMeshBuilder {
     pub uv_store: Vec<[f32; 2]>,
     /// Number of tries when building a individual loop.
     pub n_tries: u32,
-    /// A scalar applied to each vertex.
-    pub scale: f64,
 
     // The last [`Hopf`] shape constructed.
     hopf: Hopf,
@@ -113,19 +109,11 @@ impl HopfMeshBuilder {
     /// Creates a new [`HopfMeshBuilder`].
     #[must_use = "Not using the returned, is the same a doing nothing at all."]
     #[inline]
-    pub fn new(
-        line_start: &(f64, f64),
-        line_end: &(f64, f64),
-        n_points_per_loop: u32,
-        n_loops: u32,
-        n_tries: u32,
-        scale: f64,
-    ) -> Self {
+    pub fn new(line_start: &(f64, f64), line_end: &(f64, f64), n_loops: u32, n_tries: u32) -> Self {
         Self {
             hopf: Hopf {
                 line_start: *line_start,
                 line_end: *line_end,
-                n_points_per_loop,
                 n_loops,
             },
             // Unlike Wavefront OBJ files indexed start at zero
@@ -134,12 +122,10 @@ impl HopfMeshBuilder {
             triangle_store: Indices::U32(Vec::new()),
             uv_store: Vec::new(),
             n_tries,
-            scale,
         }
     }
 
     /// Creates an hopf mesh with the given number of subdivisions.
-    ///
     ///
     /// This logic could be folded into `HopfBuilder::build()` but build cannot fail.
     /// and I want better error reporting.
@@ -149,7 +135,7 @@ impl HopfMeshBuilder {
     /// `HopfMeshError::LineError` if  `line_start` and `line_end` are identical.
     ///
     /// `HopfMeshError::NRetriesExceeded` if any loop cannot be constructed.
-    pub fn construct(mut self) -> Result<Self, HopfMeshError> {
+    pub fn construct<const N: usize>(mut self) -> Result<Self, HopfMeshError> {
         // weave is a series of seed points which will be transformed into fibres.
         let line_start = self.hopf.line_start;
         let line_end = self.hopf.line_end;
@@ -161,28 +147,36 @@ impl HopfMeshBuilder {
             lines_end: line_end,
         })?;
 
-        let fibre_last = Fibre::new(initial_lat, initial_lon, 0_f64..4.0 * std::f64::consts::PI);
+        let fibre_last = Fibre::new(
+            initial_lat,
+            initial_lon,
+            0_f64..=4.0 * core::f64::consts::PI,
+        );
 
-        let (mut points_last, _alphas) = fibre_last
-            .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
-            .map_err(|_| HopfMeshError::NRetriesExceeded {
-                n_tries: self.n_tries,
-                lat: initial_lat,
-                lon: initial_lon,
-            })?;
+        // let (mut points_last, _alphas) = fibre_last
+        //     .build(self.scale, N as u32, self.n_tries)
+        //     .map_err(|_| HopfMeshError::NRetriesExceeded {
+        //         n_tries: self.n_tries,
+        //         lat: initial_lat,
+        //         lon: initial_lon,
+        //     })?;
+
+        let (mut points_last, _alphas) = fibre_last.build_uniform::<N>();
 
         for (lat, lon) in weave {
-            let fibre = Fibre::new(lat, lon, 0_f64..4.0 * std::f64::consts::PI);
+            let fibre = Fibre::new(lat, lon, 0_f64..=4.0 * core::f64::consts::PI);
 
-            let (points, _alphas) = fibre
-                .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
-                .map_err(|_| HopfMeshError::NRetriesExceeded {
-                    n_tries: self.n_tries,
-                    lat,
-                    lon,
-                })?;
+            // let (points, _alphas) = fibre
+            //     .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
+            //     .map_err(|_| HopfMeshError::NRetriesExceeded {
+            //         n_tries: self.n_tries,
+            //         lat,
+            //         lon,
+            //     })?;
 
-            debug_assert_eq!(points.len(), self.hopf.n_points_per_loop as usize);
+            let (points, _alphas) = fibre.build_uniform::<N>();
+
+            debug_assert_eq!(points.len(), 80);
 
             //  0 - 3
             //  | / |
@@ -192,7 +186,7 @@ impl HopfMeshBuilder {
             // Given a quad ( points 0, 1, 2, 3 )
             // form triangles (0,1,3) and (1,2,3)
             // add triangles will de-dupe points and compute normals.
-            for i in 1..self.hopf.n_points_per_loop as usize {
+            for i in 1..N {
                 let p0 = &points_last[i - 1];
                 let p1 = &points_last[i];
                 let p2 = &points[i];
@@ -255,7 +249,6 @@ impl Meshable for Hopf {
             triangle_store: Indices::U32(Vec::new()),
             uv_store: Vec::new(),
             n_tries: 2000,
-            scale: 3_f64,
         }
     }
 }

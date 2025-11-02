@@ -25,6 +25,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::io::{BufWriter, Write};
 use std::ops::Mul;
+use std::ops::Sub;
 
 use bytemuck::{Pod, Zeroable};
 use glam::DVec3;
@@ -32,7 +33,7 @@ use glam::Vec3;
 
 /// Hashable version of a point in E3.
 #[repr(transparent)]
-#[derive(Pod, Zeroable, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default, Pod, Zeroable)]
 pub struct Vertex(pub DVec3);
 
 impl Eq for Vertex {}
@@ -62,6 +63,18 @@ impl Hash for Vertex {
     }
 }
 
+impl Sub<Self> for Vertex {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(DVec3 {
+            x: self.0.x - rhs.0.x,
+            y: self.0.y - rhs.0.y,
+            z: self.0.z - rhs.0.z,
+        })
+    }
+}
+
 impl Mul<f64> for Vertex {
     type Output = Self;
 
@@ -71,6 +84,27 @@ impl Mul<f64> for Vertex {
             y: self.0.y * rhs,
             z: self.0.z * rhs,
         })
+    }
+}
+
+impl Vertex {
+    /// Computes the dot product of `self` and `rhs`.
+    #[inline]
+    #[must_use]
+    pub fn dot(self, rhs: Self) -> f64 {
+        // (self.0.x * rhs.0.x) + (self.0.y * rhs.0.y) + (self.0.z * rhs.0.z)
+        self.0
+            .z
+            .mul_add(rhs.0.z, self.0.x.mul_add(rhs.0.x, self.0.y * rhs.0.y))
+    }
+
+    /// Computes the length of `self`.
+    #[doc(alias = "magnitude")]
+    #[inline]
+    #[must_use]
+    pub fn length(self) -> f64 {
+        let d = self.dot(self);
+        d.sqrt()
     }
 }
 
@@ -97,8 +131,9 @@ pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
 ///
 /// # Errors
 ///   When writing to a buffer fails
-pub fn generate_ply<W>(points: &[Vertex], out: &mut BufWriter<W>) -> Result<(), std::io::Error>
+pub fn generate_ply<I, W>(points: I, out: &mut BufWriter<W>) -> Result<(), std::io::Error>
 where
+    I: ExactSizeIterator<Item = Vertex>,
     W: ?Sized + std::io::Write,
 {
     let len = points.len();

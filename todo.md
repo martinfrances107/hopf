@@ -1,14 +1,15 @@
 # TODO
 
-[] - close the loop.
+[] - Fix broken mesh ( bevy ) start and stop do not mesh.
+     point2ply - shows the spacing is ONLY almost always even.
 
-[] = scale
+[] - smooth shading. Initial material issue
 
-[] - Newton Rahspson / Gradient descent is low.
+[] -Build a benchmark
+    Newton Rahspson / Gradient descent is low.
     Could use binary search with brackets
     No path adjustment?
 
-[] -
 
 [] - One point on the on the bevy computed Mesh is very large
      dump the points and look for outlier.

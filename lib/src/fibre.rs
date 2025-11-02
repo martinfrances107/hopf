@@ -1,14 +1,22 @@
 use core::ops::Range;
 use core::{error::Error, f64};
 
+use core::ops::RangeInclusive;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::ops::RangeInclusive;
 
 use crate::Vertex;
+use crate::length::resample_fibre;
 use crate::{length::path_length, project};
 
+// The domain of a fibre is 0..4PI
+static ALPHA_MAX: f64 = 4_f64 * core::f64::consts::PI;
+
+// The Range is not 'inclusive'  as it blocks the north pole.
+// Under sterographic the projection of a point at the north pole is undefined.
 static LAT_RANGE: Range<f64> = -core::f64::consts::PI / 2.0..core::f64::consts::PI / 2.0;
+// 0 degrees and 360 degrees which are identical longitudes.
+// This range is inclusive to allow for closed paths.
 static LON_RANGE: RangeInclusive<f64> = 0_f64..=core::f64::consts::TAU;
 
 /// A fibre is a point on s(2)
@@ -17,12 +25,14 @@ static LON_RANGE: RangeInclusive<f64> = 0_f64..=core::f64::consts::TAU;
 pub struct Fibre {
     // latittude ( radians ).
     lat: f64,
-    // longitude ( radians).
+    // longitude ( radians ).
     lon: f64,
 
-    // alpha is how fibre extends the base space.
-    // [0..4PI] is the full fibre.
-    alpha: Range<f64>,
+    // alpha [0..=4PI] is the domain of the fibre.
+    //
+    // NB alpha=0 is the same point as alpha=4PI.
+    // This duplication is useful when defining a closed path.
+    alpha: RangeInclusive<f64>,
 }
 
 /// Setting extarcted from polar coords.
@@ -53,13 +63,20 @@ impl Display for FibreBuildError {
 
 impl Fibre {
     /// Create a new fibre.
+    ///
+    /// alpha must be equal to or contained by 0..4PI.
+    ///
+    /// NB. This will only be checked in debug builds.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
-    pub fn new(lat: f64, lon: f64, mut alpha: Range<f64>) -> Self {
+    pub fn new(lat: f64, lon: f64, alpha: RangeInclusive<f64>) -> Self {
         debug_assert!(LAT_RANGE.contains(&lat));
         debug_assert!(LON_RANGE.contains(&lon));
 
-        alpha.start = alpha.start.clamp(0.0, 4.0 * std::f64::consts::PI);
-        alpha.end = alpha.end.clamp(alpha.start, 4.0 * std::f64::consts::PI);
+        debug_assert!(*alpha.start() >= 0_f64);
+        debug_assert!(*alpha.start() <= ALPHA_MAX);
+
+        debug_assert!(*alpha.end() >= 0_f64);
+        debug_assert!(*alpha.end() <= ALPHA_MAX);
 
         Self { lat, lon, alpha }
     }
@@ -69,8 +86,6 @@ impl Fibre {
     /// `target_samples` - The number of on the closed path
     ///
     /// `n_tries` - is the maximum number of tries in step size adjustment loop.
-    ///
-    /// scale - Scale the output points by this factor.
     ///
     /// The points are uniformly separated by adaptively altering alpha
     /// until adjacent points are separated by a value a error of 1%.
@@ -85,7 +100,6 @@ impl Fibre {
     /// between two values and `n_tries` is exceeded.
     pub fn build(
         &self,
-        scale: f64,
         target_samples: u32,
         n_tries: u32,
     ) -> Result<(Vec<Vertex>, Vec<f64>), FibreBuildError> {
@@ -106,8 +120,8 @@ impl Fibre {
         // Change in alpha. Dynamically adjusted step size.
         let mut step = 4_f64 * f64::consts::PI / f64::from(target_samples);
 
-        let mut f_last = fibre(self.alpha.start);
-        let mut alpha_last = self.alpha.start;
+        let mut f_last = fibre(*self.alpha.start());
+        let mut alpha_last = *self.alpha.start();
 
         let mut points = Vec::with_capacity(target_samples as usize);
         let mut alphas = Vec::with_capacity(target_samples as usize);
@@ -120,11 +134,11 @@ impl Fibre {
             i = 0;
             'adaptive_loop: loop {
                 // paranoia - clamp
-                alpha = (alpha_last + step).clamp(self.alpha.start, self.alpha.end);
+                alpha = alpha_last + step;
 
                 f = fibre(alpha);
 
-                if alpha >= self.alpha.end {
+                if alpha > *self.alpha.end() {
                     break 'adaptive_loop;
                 }
 
@@ -146,10 +160,10 @@ impl Fibre {
 
             f_last = f;
             alpha_last = alpha;
-            points.push(f * scale);
+            points.push(f);
             alphas.push(alpha);
 
-            if alpha >= self.alpha.end {
+            if alpha >= *self.alpha.end() {
                 break 'outer;
             }
         }
@@ -161,13 +175,147 @@ impl Fibre {
         Ok((points, alphas))
     }
 
+    /// RAW Uniformly space in domain space results in highly un-evenly spaced output.
+    /// NB: Fast but results are almost never what is wanted.
+    #[must_use]
+    pub fn build_raw(
+        &self,
+        target_samples: u32,
+        n_tries: u32,
+    ) -> impl ExactSizeIterator<Item = Vertex> {
+        let fibre = self.projected_fibre();
+
+        let step = 4_f64 * f64::consts::PI / f64::from(target_samples);
+        let alpha_start = *self.alpha.start();
+
+        (0..n_tries).map(move |i| {
+            // let a = alpha_start + i as f64 * step;
+            let a = (i as f64).mul_add(step, alpha_start);
+            fibre(a)
+        })
+    }
+
+    /// Returns points unformly space along the curve.
+    ///
+    /// This version is memory hungry
+    /// TODO Could move the LUT into Self to avoid constant memory allocation/deallocation.
+    /// TODO Could remove scaling. blender allows for a scaling at the obj level.
+    #[must_use]
+    pub fn build_uniform<const M: usize>(&self) -> (Vec<Vertex>, Vec<f64>) {
+        let lut = resample_fibre::<1024, M>(self.projected_fibre(), &self.alpha);
+
+        let path_length = lut[M - 1].1;
+        let step = path_length / M as f64;
+
+        let fibre = self.projected_fibre();
+
+        let mut last_match = 0_usize;
+        (0..M)
+            .map(|i| {
+                // a
+                let dist_threshold = i as f64 * step;
+
+                // Preformance: Search through a progressively smaller section of the LUT.
+                let (match_index, (alpha, _dist)) = lut[last_match..]
+                    .iter()
+                    .enumerate()
+                    .find(move |(_i, (_alpha, d))| {
+                        // Threshold distance.
+                        *d >= dist_threshold
+                    })
+                    .unwrap_or((0_usize, &(f64::NAN, f64::NAN)));
+
+                last_match = match_index;
+                (fibre(*alpha), alpha)
+            })
+            .unzip()
+    }
+
+    // Perform binary search on the curve to get uniform evenly spaced point in the output domain
+    //
+    // Requires further work, before use.
+    // pub fn build_binary(
+    //     &self,
+    //     scale: f64,
+    //     target_samples: u32,
+    //     n_tries: u32,
+    // ) -> (Vec<Vertex>, Vec<f64>) {
+    //     const TOLLERANCE: f64 = 0.001_f64;
+
+    //     let fibre = self.projected_fibre();
+    //     // Target number of points per circle.
+    //     let len = path_length(&fibre, &self.alpha, 10_000);
+
+    //     // Target distance to travel per step;
+    //     let target_dist = len / f64::from(target_samples);
+
+    //     let delta = TOLLERANCE * target_dist;
+
+    //     let distance_min = target_dist - delta;
+    //     let distance_max = target_dist + delta;
+    //     // Using a Range to form a bracket
+    //     let target_dist_range = RangeInclusive::new(distance_min, distance_max);
+
+    //     // Change in alpha. Dynamically adjusted step size.
+    //     let mut step = 4_f64 * f64::consts::PI / f64::from(target_samples);
+
+    //     let mut f_last = fibre(*self.alpha.start());
+    //     let mut alpha_last = *self.alpha.start();
+
+    //     let mut points = Vec::with_capacity(target_samples as usize);
+    //     let mut alphas = Vec::with_capacity(target_samples as usize);
+    //     let alpha_start = *self.alpha.start();
+
+    //     // Set the bracket to be (alpha_start, alpha_mid)
+    //     //
+    //     // Assumptions for initial bracket.
+    //     // the first point is contained beteen the start and the midpoint alpha vlaue.
+    //     // Cannot just used the end point as for closed paths the start and the end are identical.
+    //     let alpha_lower_bound = alpha_last;
+    //     let alpha_upper_bound = alpha_last.midpoint(*self.alpha.end());
+
+    //     // First point requires no computation.
+    //     points.push(fibre(alpha_start));
+    //     alphas.push(alpha_start);
+    //     for i in 1..target_samples {
+    //         // let a = alpha_start + i as f64 * step;
+    //         let a = (i as f64).mul_add(step, alpha_start);
+    //         let f_lower = fibre(alpha_lower_bound);
+    //         let f_upper = fibre(alpha_upper_bound);
+
+    //         // binary search until the point is within tollerance.
+    //         'search_loop: for i in 0..n_tries {
+    //             // euclidean distance between points, is a cheap subsitute
+    //             // for the distance along the path.
+    //             let dist = (f_lower - f_last).length();
+
+    //             if dist > distance_max {
+    //                 // bring the upper value down
+    //             } else if dist < distance_min {
+    //                 // raise lower bound.
+    //             } else {
+    //                 // the distance is within tollerances.
+    //                 break 'search_loop;
+    //             }
+    //         }
+    //         // The upper and lower bound are effective the same point
+    //         // use the lower bound a the result.
+    //         //
+    //         let f_last = f_lower;
+    //         // Scale the output, not the search data.
+    //         points.push(f_last * scale);
+    //         alphas.push(alpha_lower_bound);
+    //     }
+
+    //     (points, alphas)
+    // }
+
     // Solve for ξ1 and η.
     // Given a point on s2 (lat, long)
     //
     // z = cos(2η)
     // x = sin(2η)cos(ξ1)
     // y = sin(2η)sin(ξ1)
-
     fn extract_settings(&self) -> Settings {
         let (sin_lat, cos_lat) = self.lat.sin_cos();
         let cos_lon = self.lon.cos();
@@ -209,7 +357,6 @@ impl Fibre {
 
 #[cfg(test)]
 mod tests {
-    use core::fmt::Error;
 
     use super::*;
 
@@ -218,10 +365,10 @@ mod tests {
         let fibre = Fibre::new(
             5.0_f64.to_radians(),
             5.0_f64.to_radians(),
-            0_f64..4.0 * std::f64::consts::PI,
+            0_f64..=4.0 * core::f64::consts::PI,
         );
 
-        match fibre.build(1.0, 1_000, 2000) {
+        match fibre.build(1_000, 2000) {
             Ok((points, _)) => {
                 assert_eq!(points.len(), 1_000);
             }
@@ -240,10 +387,10 @@ mod tests {
         let fibre = Fibre::new(
             5.0_f64.to_radians(),
             5.0_f64.to_radians(),
-            0_f64..2_f64 * std::f64::consts::PI,
+            0_f64..=2_f64 * core::f64::consts::PI,
         );
 
-        match fibre.build(1.0, 1_000, 2_000) {
+        match fibre.build(1_000, 2_000) {
             Ok((points, _)) => {
                 assert_eq!(points.len(), 1_000);
             }
