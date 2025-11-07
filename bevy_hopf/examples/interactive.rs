@@ -28,11 +28,39 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
+use core::f32;
 use core::f32::consts::PI;
 
+use bevy::prelude::Cone;
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
 use bevy_hopf::HopfPlugin;
 use bevy_hopf::hopf::HopfMeshBuilder;
+use bevy_mesh::{ConeAnchor, ConeMeshBuilder};
+use bevy_mod_mesh_tools::mesh_with_transform;
+use bevy_picking::Pickable;
+
+use hopf::sp::SurfacePoint;
+
+#[derive(Component)]
+struct IndicatorState {
+    start: SurfacePoint,
+    end: SurfacePoint,
+    origin: Vec3,
+    radius: f32,
+    active_handle: Option<Entity>,
+}
+
+impl IndicatorState {
+    fn new(start: SurfacePoint, end: SurfacePoint, origin: Vec3, radius: f32) -> Self {
+        Self {
+            start,
+            end,
+            origin,
+            radius,
+            active_handle: None,
+        }
+    }
+}
 
 fn main() {
     App::new()
@@ -40,12 +68,26 @@ fn main() {
         .add_plugins((DefaultPlugins, HopfPlugin, MeshPickingPlugin))
         .add_systems(Startup, setup_scene)
         .add_systems(Update, (draw_mesh_intersections, rotate))
+        .add_systems(Update, draw_cursor)
         .run();
 }
 
 /// A marker component for our shapes so we can query them separately from the ground plane.
 #[derive(Component)]
 struct Shape;
+
+#[derive(Component)]
+struct IndicatorHandle;
+
+#[derive(Component)]
+struct IndicatorBall;
+
+#[derive(Component)]
+struct Ground;
+
+/// A marker component, allow stylization of the output mesh
+#[derive(Component)]
+struct Hopf;
 
 const SHAPES_X_EXTENT: f32 = 10.0;
 const Z_EXTENT: f32 = 10.0;
@@ -55,80 +97,154 @@ fn setup_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // Set up the materials.
+    // Materials.
     let white_matl = materials.add(Color::WHITE);
     let ground_matl = materials.add(Color::from(GRAY_300));
     let hover_matl = materials.add(Color::from(CYAN_300));
     let pressed_matl = materials.add(Color::from(YELLOW_300));
+    let indicator_mtl = materials.add(Color::from(CYAN_300));
+    let mut hopf_white_matl: StandardMaterial = Color::WHITE.into();
+    // Double sided materials.
+    hopf_white_matl.cull_mode = None;
+    hopf_white_matl.double_sided = true;
+    let hopf_white_matl = materials.add(hopf_white_matl);
+    let mut hopf_hover_matl: StandardMaterial = Color::from(CYAN_300).into();
+    hopf_hover_matl.cull_mode = None;
+    hopf_hover_matl.double_sided = true;
+    let hopf_hover_matl = materials.add(hopf_hover_matl);
+    let mut hopf_pressed_matl: StandardMaterial = Color::from(YELLOW_300).into();
+    hopf_pressed_matl.cull_mode = None;
+    hopf_pressed_matl.double_sided = true;
+    let hopf_pressed_matl = materials.add(hopf_pressed_matl);
 
-    // Initial line/ Initial mesh.
-    let line_start = &(10_f64.to_radians(), 0_f64);
-    let line_end = &(10_f64.to_radians(), 270_f64.to_radians());
+    // Gizmo
+    let indicator_ball_radius = 2.0;
+    let indicator_height = 0.5;
+    let indicator_radius = 0.25; // as aspect ration of 0.5;
 
-    // Resolution of the mesh is in 2 parameters;
-    //
-    // Number of loops.
-    let n_loops = 27;
-    // Number of points per loop.
-    let n_tries = 2000;
+    // North pole
+    let line_start = SurfacePoint {
+        lat: 45_f32.to_radians(),
+        lon: 0_f32,
+    };
 
-    let hopf_builder = HopfMeshBuilder::new(line_start, line_end, n_loops, n_tries);
+    let line_end = SurfacePoint {
+        lat: 0_f32.to_radians(),
+        lon: 0_f32.to_radians(),
+    };
+
+    let mut cb = ConeMeshBuilder::new(indicator_radius, indicator_height, 16);
+    let indicator_mesh_start = cb.build();
+    let indicator_mesh_start = mesh_with_transform(
+        &indicator_mesh_start,
+        // FLip unside down and place indicator as it were on an along the x axes
+        // with radius, as if indication were lan 0, long 0
+        &Transform::from_xyz(indicator_ball_radius + indicator_height / 2_f32, 0.0, 0.0)
+            .with_rotation(Quat::from_euler(
+                EulerRot::XYZ,
+                0_f32,
+                0_f32,
+                90.0_f32.to_radians(),
+            )),
+    )
+    .unwrap();
+    let indicator = meshes.add(indicator_mesh_start);
+
+    let sphere = Sphere::new(indicator_ball_radius).mesh().ico(5).unwrap();
+
+    // Spherical selector
+    let i = 0;
+    // Origin of the gizmo
+    let origin = Vec3::new(
+        -SHAPES_X_EXTENT / 2. + i as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
+        3.0,
+        Z_EXTENT / 2.,
+    );
+
+    let indicator_ball = commands
+        .spawn((
+            Mesh3d(meshes.add(sphere)),
+            MeshMaterial3d(white_matl.clone()),
+            Transform::from_translation(origin),
+            // .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            // Attach an observer to handle drag events
+            Shape,
+            IndicatorBall,
+            IndicatorState::new(
+                line_start.clone(),
+                line_end.clone(),
+                origin,
+                indicator_ball_radius,
+            ),
+        ))
+        // Children be offset bt the parent transform
+        .with_children(|parent| {
+            // Start Indicator ( lat, lon )
+            parent.spawn((
+                Mesh3d(indicator.clone()),
+                MeshMaterial3d(indicator_mtl.clone()),
+                Transform::from_rotation(Quat::from_euler(
+                    EulerRot::XYZ,
+                    0_f32,
+                    line_start.lon,
+                    line_start.lat,
+                )),
+                IndicatorHandle,
+            ));
+
+            // End Indicator is ( lat, lon )
+            parent.spawn((
+                Mesh3d(indicator),
+                MeshMaterial3d(indicator_mtl),
+                Transform::from_rotation(Quat::from_euler(
+                    EulerRot::XYZ,
+                    0_f32,
+                    line_end.lon,
+                    line_end.lat,
+                )),
+                IndicatorHandle,
+            ));
+        })
+        .observe(update_material_on::<Pointer<Over>>(hover_matl.clone()))
+        .observe(update_material_on::<Pointer<Out>>(white_matl))
+        .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
+        .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
+        .observe(rotate_on_drag)
+        .observe(rotate_handle_on_drag);
+
+    let line_start = SurfacePoint {
+        lat: 10_f32.to_radians(),
+        lon: 0_f32,
+    };
+
+    let line_end = SurfacePoint {
+        lat: 10_f32.to_radians(),
+        lon: 270_f32.to_radians(),
+    };
+
+    // Hopf Object
+    let hopf_builder = HopfMeshBuilder::new(&line_start, &line_end, 27, 2000);
 
     let hopf_mesh = hopf_builder
         .construct::<40>()
         .expect("Failed to construct mesh")
         .build();
 
-    let mut hopf_white_matl: StandardMaterial = Color::WHITE.into();
-    hopf_white_matl.cull_mode = None;
-    hopf_white_matl.double_sided = true;
-    let hopf_white_matl = materials.add(hopf_white_matl);
-
-    let mut hopf_hover_matl: StandardMaterial = Color::from(CYAN_300).into();
-    hopf_hover_matl.cull_mode = None;
-    hopf_hover_matl.double_sided = true;
-    let hopf_hover_matl = materials.add(hopf_hover_matl);
-
-    let mut hopf_pressed_matl: StandardMaterial = Color::from(YELLOW_300).into();
-    hopf_pressed_matl.cull_mode = None;
-    hopf_pressed_matl.double_sided = true;
-    let hopf_pressed_matl = materials.add(hopf_pressed_matl);
-
-    let sphere = Sphere::default().mesh().ico(5).unwrap();
-
-    // Spherical selector
-    commands
-        .spawn((
-            Mesh3d(meshes.add(sphere)),
-            MeshMaterial3d(white_matl.clone()),
-            Transform::from_xyz(
-                -SHAPES_X_EXTENT / 2. + 0 as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
-                3.0,
-                Z_EXTENT / 2.,
-            )
-            .with_scale(Vec3::splat(3.0))
-            .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-            Shape,
-        ))
-        .observe(update_material_on::<Pointer<Over>>(hover_matl.clone()))
-        .observe(update_material_on::<Pointer<Out>>(white_matl))
-        .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
-        .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
-        .observe(rotate_on_drag);
-
     // Hopf mesh
+    let i = 1;
     commands
         .spawn((
             Mesh3d(meshes.add(hopf_mesh)),
             MeshMaterial3d(hopf_white_matl.clone()),
             Transform::from_xyz(
-                -SHAPES_X_EXTENT / 2. + 1 as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
+                -SHAPES_X_EXTENT / 2. + i as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
                 3.0,
                 Z_EXTENT / 2.,
             )
             .with_scale(Vec3::splat(0.8))
             .with_rotation(Quat::from_rotation_x(-PI / 4.)),
             Shape,
+            Hopf,
         ))
         .observe(update_material_on::<Pointer<Over>>(hopf_hover_matl.clone()))
         .observe(update_material_on::<Pointer<Out>>(hopf_white_matl.clone()))
@@ -145,6 +261,7 @@ fn setup_scene(
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
         MeshMaterial3d(ground_matl.clone()),
         Pickable::IGNORE, // Disable picking for the ground plane.
+        Ground,
     ));
 
     // Light
@@ -215,4 +332,56 @@ fn rotate_on_drag(drag: On<Pointer<Drag>>, mut transforms: Query<&mut Transform>
     let mut transform = transforms.get_mut(drag.entity).unwrap();
     transform.rotate_y(drag.delta.x * 0.02);
     transform.rotate_x(drag.delta.y * 0.02);
+}
+
+fn rotate_handle_on_drag(
+    drag: On<Pointer<Drag>>,
+    ib_query: Query<(&IndicatorBall, &Children)>,
+    mut child_query: Query<(&IndicatorHandle, &mut Transform)>,
+) {
+    // use scaled delta values to create rotation updates from start handle
+    let lat_change = drag.delta.x * 0.02;
+    let lon_change = drag.delta.y * 0.02;
+
+    // FIX currently update both children must seleect base on proximity and keypress.
+    for (_, children) in ib_query {
+        for child in children {
+            if let Ok((_, mut handle_transform)) = child_query.get_mut(*child) {
+                // TODO two ratations lead to two separte Quat
+                // make this one once stable
+                handle_transform.rotate_z(lat_change);
+                handle_transform.rotate_y(lon_change);
+            }
+        }
+    }
+}
+
+/// DONT'T COPY: This is really laggy ( it was taken from the examples!)
+fn draw_cursor(
+    camera_query: Single<(&Camera, &GlobalTransform)>,
+    ground: Single<&GlobalTransform, With<Ground>>,
+    window: Single<&Window>,
+    mut gizmos: Gizmos,
+) {
+    let (camera, camera_transform) = *camera_query;
+
+    if let Some(cursor_position) = window.cursor_position()
+        // Calculate a ray pointing from the camera into the world based on the cursor's position.
+        && let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position)
+        // Calculate if and at what distance the ray is hitting the ground plane.
+        && let Some(distance) =
+            ray.intersect_plane(ground.translation(), InfinitePlane3d::new(ground.up()))
+    {
+        let point = ray.get_point(distance);
+
+        // Draw a circle just above the ground plane at that position.
+        gizmos.circle(
+            Isometry3d::new(
+                point + ground.up() * 0.01,
+                Quat::from_rotation_arc(Vec3::Z, ground.up().as_vec3()),
+            ),
+            0.2,
+            Color::WHITE,
+        );
+    }
 }

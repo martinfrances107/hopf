@@ -2,7 +2,12 @@
 
 
 [] - Bevy App user inputs 2 points to form lines
-      each line produces a mesh.
+
+    - handles are defined as upside down triangle.
+
+    - on DragStart take the translation of the selected handle.
+      keep  lat, lon in a state variable and in dag update the rotation to point onto the base sphere. ]
+
     -- get a mesh from a line segment on the sphere to render
     -- mesh is rendered as a object next to the gismo.
     -- next  1 point in fixed, as the control point moved

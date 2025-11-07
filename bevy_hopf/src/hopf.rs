@@ -11,6 +11,7 @@ use thiserror::Error;
 
 use hopf::Vertex;
 use hopf::fibre::Fibre;
+use hopf::sp::SurfacePoint;
 
 /// An error when creating an hopf [`Mesh`] from a [`HopfMeshBuilder`].
 #[derive(Clone, Copy, Debug, Error)]
@@ -20,34 +21,38 @@ pub enum HopfMeshError {
     NRetriesExceeded {
         /// The number of retries used.
         n_tries: u32,
-        /// The latitude of the seed point.
-        lat: f64,
-        /// The longitude of the seed point.
-        lon: f64,
+        /// The current point being used to generate the mesh.
+        sp: SurfacePoint,
     },
     /// When the start and end of the line segment are the same.
     #[error("Cannot create an HopfMesh due to invalid line specification.")]
     LineError {
         /// The start of the line segment.
-        lines_start: (f64, f64),
+        lines_start: SurfacePoint,
         /// The end of the line segment.
-        lines_end: (f64, f64),
+        lines_end: SurfacePoint,
     },
 }
 
 // #[derive(Clone, Copy, Debug, Reflect)]
 #[derive(Clone, Debug)]
 struct Hopf {
-    line_start: (f64, f64),
-    line_end: (f64, f64),
+    line_start: SurfacePoint,
+    line_end: SurfacePoint,
     n_loops: u32,
 }
 
 impl Default for Hopf {
     fn default() -> Self {
         Self {
-            line_start: (45_f64.to_radians(), 0.0),
-            line_end: (45_f64.to_radians(), 2_f64 * core::f64::consts::PI),
+            line_start: SurfacePoint {
+                lat: 45_f32.to_radians(),
+                lon: 0.0,
+            },
+            line_end: SurfacePoint {
+                lat: 45_f32.to_radians(),
+                lon: 2_f32 * core::f32::consts::PI,
+            },
             n_loops: 10,
         }
     }
@@ -109,7 +114,12 @@ impl HopfMeshBuilder {
     /// Creates a new [`HopfMeshBuilder`].
     #[must_use = "Not using the returned, is the same a doing nothing at all."]
     #[inline]
-    pub fn new(line_start: &(f64, f64), line_end: &(f64, f64), n_loops: u32, n_tries: u32) -> Self {
+    pub fn new(
+        line_start: &SurfacePoint,
+        line_end: &SurfacePoint,
+        n_loops: u32,
+        n_tries: u32,
+    ) -> Self {
         Self {
             hopf: Hopf {
                 line_start: *line_start,
@@ -125,7 +135,7 @@ impl HopfMeshBuilder {
         }
     }
 
-    /// Creates an hopf mesh with the given number of subdivisions.
+    /// Creates an hopf mesh with N points per loop
     ///
     /// This logic could be folded into `HopfBuilder::build()` but build cannot fail.
     /// and I want better error reporting.
@@ -142,16 +152,12 @@ impl HopfMeshBuilder {
         let n_loops = self.hopf.n_loops;
         let mut weave = hopf::mesh::weave(&line_start, &line_end, n_loops);
 
-        let (initial_lat, initial_lon) = weave.next().ok_or(HopfMeshError::LineError {
+        let sp_initial = weave.next().ok_or(HopfMeshError::LineError {
             lines_start: line_start,
             lines_end: line_end,
         })?;
 
-        let fibre_last = Fibre::new(
-            initial_lat,
-            initial_lon,
-            0_f64..=4.0 * core::f64::consts::PI,
-        );
+        let fibre_last = Fibre::new(sp_initial, 0_f32..=4.0 * core::f32::consts::PI);
 
         // let (mut points_last, _alphas) = fibre_last
         //     .build(self.scale, N as u32, self.n_tries)
@@ -163,8 +169,8 @@ impl HopfMeshBuilder {
 
         let (mut points_last, _alphas) = fibre_last.build_uniform::<N>();
 
-        for (lat, lon) in weave {
-            let fibre = Fibre::new(lat, lon, 0_f64..=4.0 * core::f64::consts::PI);
+        for sp in weave {
+            let fibre = Fibre::new(sp, 0_f32..=4.0 * core::f32::consts::PI);
 
             // let (points, _alphas) = fibre
             //     .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)

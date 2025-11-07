@@ -17,6 +17,9 @@ pub mod length;
 /// Collection of fibres woven into a mesh.
 pub mod mesh;
 
+/// Surface point.
+pub mod sp;
+
 // /// A Point Cloud
 /// Handling OBJ file format.
 pub mod obj;
@@ -28,13 +31,12 @@ use std::ops::Mul;
 use std::ops::Sub;
 
 use bytemuck::{Pod, Zeroable};
-use glam::DVec3;
 use glam::Vec3;
 
 /// Hashable version of a point in E3.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Pod, Zeroable)]
-pub struct Vertex(pub DVec3);
+pub struct Vertex(pub Vec3);
 
 impl Eq for Vertex {}
 impl PartialEq for Vertex {
@@ -67,7 +69,7 @@ impl Sub<Self> for Vertex {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self(DVec3 {
+        Self(Vec3 {
             x: self.0.x - rhs.0.x,
             y: self.0.y - rhs.0.y,
             z: self.0.z - rhs.0.z,
@@ -75,11 +77,11 @@ impl Sub<Self> for Vertex {
     }
 }
 
-impl Mul<f64> for Vertex {
+impl Mul<f32> for Vertex {
     type Output = Self;
 
-    fn mul(self, rhs: f64) -> Self::Output {
-        Self(DVec3 {
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(Vec3 {
             x: self.0.x * rhs,
             y: self.0.y * rhs,
             z: self.0.z * rhs,
@@ -91,7 +93,7 @@ impl Vertex {
     /// Computes the dot product of `self` and `rhs`.
     #[inline]
     #[must_use]
-    pub fn dot(self, rhs: Self) -> f64 {
+    pub fn dot(self, rhs: Self) -> f32 {
         // (self.0.x * rhs.0.x) + (self.0.y * rhs.0.y) + (self.0.z * rhs.0.z)
         self.0
             .z
@@ -102,7 +104,7 @@ impl Vertex {
     #[doc(alias = "magnitude")]
     #[inline]
     #[must_use]
-    pub fn length(self) -> f64 {
+    pub fn length(self) -> f32 {
         let d = self.dot(self);
         d.sqrt()
     }
@@ -114,16 +116,16 @@ impl Vertex {
 ///  If the point is at infinity or -infinity (X3 == 1)
 #[must_use = "Not using the returned, will drop the computation."]
 #[allow(non_snake_case)]
-pub fn project(X0: f64, X1: f64, X2: f64, X3: f64) -> Vertex {
-    if (1_f64 - X3).abs() < f64::EPSILON {
+pub fn project(X0: f32, X1: f32, X2: f32, X3: f32) -> Vertex {
+    if (1_f32 - X3).abs() < f32::EPSILON {
         // Handle the case where the point is at infinity or -infinity.
         // For now just stop.
         panic!("division by zero");
     } else {
-        let x = X0 / (1_f64 - X3);
-        let y = X1 / (1_f64 - X3);
-        let z = X2 / (1_f64 - X3);
-        Vertex(DVec3 { x, y, z })
+        let x = X0 / (1_f32 - X3);
+        let y = X1 / (1_f32 - X3);
+        let z = X2 / (1_f32 - X3);
+        Vertex(Vec3 { x, y, z })
     }
 }
 
@@ -145,7 +147,7 @@ where
     writeln!(out, "property float z")?;
     writeln!(out, "end_header")?;
 
-    for Vertex(DVec3 { x, y, z }) in points {
+    for Vertex(Vec3 { x, y, z }) in points {
         writeln!(out, "{x} {y} {z}")?;
     }
 
@@ -168,7 +170,7 @@ where
     let mut index = 1;
     for (i, line) in lines_gen.iter().enumerate() {
         writeln!(out, "o fibre_{i}")?;
-        for Vertex(DVec3 { x, y, z }) in line {
+        for Vertex(Vec3 { x, y, z }) in line {
             writeln!(out, "v {x} {y} {z}")?;
         }
         write!(out, "l")?;

@@ -9,7 +9,7 @@
 #![warn(missing_docs)]
 #![allow(clippy::many_single_char_names)]
 
-use hopf::{fibre::Fibre, generate_ply};
+use hopf::{fibre::Fibre, generate_ply, sp::SurfacePoint};
 use std::io::{BufWriter, Error};
 
 fn main() -> Result<(), Error> {
@@ -20,9 +20,11 @@ fn main() -> Result<(), Error> {
     let mut writer = BufWriter::new(handle);
 
     let fibre = Fibre::new(
-        5.0_f64.to_radians(),
-        5.0_f64.to_radians(),
-        0_f64..=4.0 * core::f64::consts::PI,
+        SurfacePoint {
+            lat: 5.0_f32.to_radians(),
+            lon: 5.0_f32.to_radians(),
+        },
+        0_f32..=4.0 * core::f32::consts::PI,
     );
 
     let (points, _) = fibre

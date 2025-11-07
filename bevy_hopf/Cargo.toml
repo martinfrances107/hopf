@@ -16,8 +16,11 @@ keywords.workspace = true
 bevy = "0.17.1"
 bevy_mesh = "0.17.1"
 bevy_asset = "0.17.1"
+bevy_picking = "0.17.1"
+bevy_mod_mesh_tools = { git = "https://github.com/DGriffin91/bevy_mod_mesh_tools.git", branch="main"}
 hopf = { path = "../lib" }
 thiserror = "2.0.16"
+glam = "0.30.9"
 
 [[example]]
 name = "interactive"

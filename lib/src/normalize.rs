@@ -4,28 +4,28 @@ use nrfind::find_root;
 
 // Numerical differentiation using the central difference method
 // This approximates the gradient (derivative) for F.
-fn central_difference<F>(f: F, x: f64, h: f64) -> f64
+fn central_difference<F>(f: F, x: f32, h: f32) -> f32
 where
-    F: Fn(f64) -> f64,
+    F: Fn(f32) -> f32,
 {
     (f(x + h) - f(x - h)) / (2.0 * h)
 }
 
 /// Reparametrize function f to have uniform steps in output space.
-fn reparametrize(f: &dyn Fn(f64) -> f64, x_start: f64, x_end: f64, n_out: usize) -> Vec<f64> {
-    let dist = 0_f64;
+fn reparametrize(f: &dyn Fn(f32) -> f32, x_start: f32, x_end: f32, n_out: usize) -> Vec<f32> {
+    let dist = 0_f32;
 
     const N_DETAILED: usize = 1000usize;
-    const N_DETAILED_FLOAT: f64 = N_DETAILED as f64;
+    const N_DETAILED_FLOAT: f64 = N_DETAILED as f32;
     let x_arr = (0..=N_DETAILED)
-        .map(|i| x_start + (x_end - x_start) * (i as f64) / N_DETAILED_FLOAT)
+        .map(|i| x_start + (x_end - x_start) * (i as f32) / N_DETAILED_FLOAT)
         .collect::<Vec<_>>();
 
     // println!("x_arr {:#?}", x_arr);
 
-    let mut dist = 0_f64;
+    let mut dist = 0_f32;
     let mut dist_arr = Vec::with_capacity(N_DETAILED);
-    dist_arr.push(0_f64);
+    dist_arr.push(0_f32);
 
     for i in 1..=N_DETAILED {
         let dx = x_arr[i] - x_arr[i - 1];
@@ -35,11 +35,11 @@ fn reparametrize(f: &dyn Fn(f64) -> f64, x_start: f64, x_end: f64, n_out: usize)
         dist_arr.push(dist);
     }
     println!("arc length {}", dist_arr.last().unwrap());
-    let delta = (f(x_end) - f(x_start)) / (n_out as f64);
+    let delta = (f(x_end) - f(x_start)) / (n_out as f32);
 
     (0..=n_out)
         .map(|i| {
-            let target = delta * i as f64;
+            let target = delta * i as f32;
             print!("i {i}, target {:#}", target);
             match binary_search(&dist_arr, &target) {
                 Bracket::Exact(i) => {
@@ -75,13 +75,13 @@ mod tests {
 
     #[test]
     fn parabolic() {
-        let f = |x: f64| x * x * x;
+        let f = |x: f32| x * x * x;
 
-        let uniform = reparametrize(&f, 0_f64, 10_f64, 10);
+        let uniform = reparametrize(&f, 0_f32, 10_f32, 10);
 
         println!("uniform {:#?}", uniform);
         assert!(false);
-        let expected_separation = 10_f64;
+        let expected_separation = 10_f32;
         for (j, u) in uniform.windows(2).enumerate() {
             let sep = u[1] - u[0];
             let diff = (sep - expected_separation).abs();

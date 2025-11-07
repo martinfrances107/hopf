@@ -11,7 +11,7 @@
 
 use std::io::{BufWriter, Error};
 
-use hopf::generate_obj_lines;
+use hopf::{generate_obj_lines, sp::SurfacePoint};
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
@@ -21,27 +21,28 @@ fn main() -> Result<(), std::io::Error> {
     let handle = stdout.lock();
     let mut writer = BufWriter::new(handle);
 
-    let lat = 10_f64.to_radians();
+    // Big outer shell
+    let lat = 10_f32.to_radians();
     (0..270).step_by(1).for_each(|i| {
-        let lon = (0_f64 + 10_f64 + f64::from(i)).to_radians();
-        seeds.push((lat, lon));
+        let lon = (0_f32 + 10_f32 + i as f32).to_radians();
+        seeds.push(SurfacePoint { lat, lon });
     });
 
-    let lat = 20_f64.to_radians();
+    let lat = 20_f32.to_radians();
     (0..270).step_by(5).for_each(|i| {
-        let lon = (30_f64 + f64::from(i)).to_radians();
-        seeds.push((lat, lon));
+        let lon = (30_f32 + i as f32).to_radians();
+        seeds.push(SurfacePoint { lat, lon });
     });
 
-    let lat = 30_f64.to_radians();
+    let lat = 30_f32.to_radians();
     (0..270).step_by(10).for_each(|i| {
-        let lon = (60_f64 + 10_f64 + f64::from(i)).to_radians();
-        seeds.push((lat, lon));
+        let lon = (60_f32 + 10_f32 + i as f32).to_radians();
+        seeds.push(SurfacePoint { lat, lon });
     });
 
     let mut lines = vec![];
-    for (lat, lon) in seeds {
-        let fibre = hopf::fibre::Fibre::new(lat, lon, 0_f64..=4.0 * core::f64::consts::PI);
+    for sp in seeds {
+        let fibre = hopf::fibre::Fibre::new(sp, 0_f32..=4.0 * core::f32::consts::PI);
 
         // let (points, _) = fibre.build(40, 2000_u32).map_err(|_| {
         //     std::io::Error::other("Oscillation detected while adaptively constructing a fibre")

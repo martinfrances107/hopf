@@ -14,6 +14,7 @@ use std::io::{BufWriter, Error};
 use hopf::fibre::Fibre;
 use hopf::mesh::weave;
 use hopf::obj::Obj;
+use hopf::sp::SurfacePoint;
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
@@ -27,18 +28,36 @@ fn main() -> Result<(), std::io::Error> {
     let mut meshes = vec![];
 
     // Big outer shell.
-    let start = (10_f64.to_radians(), 0_f64);
-    let end = (10_f64.to_radians(), 270_f64.to_radians());
+    let start = SurfacePoint {
+        lat: 10_f32.to_radians(),
+        lon: 0_f32,
+    };
+    let end = SurfacePoint {
+        lat: 10_f32.to_radians(),
+        lon: 270_f32.to_radians(),
+    };
     let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
-    let start = (20_f64.to_radians(), 0_f64);
-    let end = (20_f64.to_radians(), 270_f64.to_radians());
+    let start = SurfacePoint {
+        lat: 20_f32.to_radians(),
+        lon: 0_f32,
+    };
+    let end = SurfacePoint {
+        lat: 20_f32.to_radians(),
+        lon: 270_f32.to_radians(),
+    };
     let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
-    let start = (30_f64.to_radians(), 0_f64);
-    let end = (30_f64.to_radians(), 270_f64.to_radians());
+    let start = SurfacePoint {
+        lat: 30_f32.to_radians(),
+        lon: 0_f32,
+    };
+    let end = SurfacePoint {
+        lat: 30_f32.to_radians(),
+        lon: 270_f32.to_radians(),
+    };
     let mesh = weave(&start, &end, 27);
     meshes.push(mesh);
 
@@ -48,15 +67,11 @@ fn main() -> Result<(), std::io::Error> {
         let mut seed_iter = mesh;
 
         // Inspect don't consume.
-        let (initial_lat, initial_lon) = seed_iter
+        let initial_sp = seed_iter
             .next()
             .expect("Must have more than one seed to make a mesh");
 
-        let fibre_last = Fibre::new(
-            initial_lat,
-            initial_lon,
-            0_f64..=4.0 * core::f64::consts::PI,
-        );
+        let fibre_last = Fibre::new(initial_sp, 0_f32..=2.0 * core::f32::consts::PI);
 
         // let (mut points_last, _alphas) = fibre_last
         //     .build(scale, NUM_POINTS_PER_LOOP, NUM_TRIES)
@@ -67,8 +82,8 @@ fn main() -> Result<(), std::io::Error> {
 
         let mut quads = vec![];
 
-        for (lat, lon) in seed_iter {
-            let fibre = Fibre::new(lat, lon, 0_f64..=4.0 * core::f64::consts::PI);
+        for sp in seed_iter {
+            let fibre = Fibre::new(sp, 0_f32..=2.0 * core::f32::consts::PI);
 
             // let (points, _alphas) =
             //     fibre

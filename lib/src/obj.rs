@@ -2,7 +2,7 @@ use crate::Vertex;
 use std::io::Write;
 use std::{collections::HashMap, io::BufWriter};
 
-use glam::DVec3;
+use glam::Vec3;
 
 /// Hold state information related to the storage of
 /// quads in a OBJ file.
@@ -69,7 +69,7 @@ impl Obj {
         });
 
         // Root vertex list.
-        for (Vertex(DVec3 { x, y, z }), _) in vertex_buffer {
+        for (Vertex(Vec3 { x, y, z }), _) in vertex_buffer {
             writeln!(out, "v {x} {y} {z}")?;
         }
 
