@@ -133,11 +133,9 @@ fn setup_scene(
         lon: 0_f32.to_radians(),
     };
 
-    let mut cb = ConeMeshBuilder::new(indicator_radius, indicator_height, 16);
-    let indicator_mesh_start = cb.build();
-    let indicator_mesh_start = mesh_with_transform(
-        &indicator_mesh_start,
-        // FLip unside down and place indicator as it were on an along the x axes
+    let indicator = mesh_with_transform(
+        &Cone::new(indicator_radius, indicator_height).into(),
+        // place indicator as it were on an along the x axes
         // with radius, as if indication were lan 0, long 0
         &Transform::from_xyz(indicator_ball_radius + indicator_height / 2_f32, 0.0, 0.0)
             .with_rotation(Quat::from_euler(
@@ -148,7 +146,7 @@ fn setup_scene(
             )),
     )
     .unwrap();
-    let indicator = meshes.add(indicator_mesh_start);
+    let indicator = meshes.add(indicator);
 
     let sphere = Sphere::new(indicator_ball_radius).mesh().ico(5).unwrap();
 
