@@ -35,32 +35,10 @@ use bevy::prelude::Cone;
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
 use bevy_hopf::HopfPlugin;
 use bevy_hopf::hopf::HopfMeshBuilder;
-use bevy_mesh::{ConeAnchor, ConeMeshBuilder};
 use bevy_mod_mesh_tools::mesh_with_transform;
 use bevy_picking::Pickable;
 
 use hopf::sp::SurfacePoint;
-
-#[derive(Component)]
-struct IndicatorState {
-    start: SurfacePoint,
-    end: SurfacePoint,
-    origin: Vec3,
-    radius: f32,
-    active_handle: Option<Entity>,
-}
-
-impl IndicatorState {
-    fn new(start: SurfacePoint, end: SurfacePoint, origin: Vec3, radius: f32) -> Self {
-        Self {
-            start,
-            end,
-            origin,
-            radius,
-            active_handle: None,
-        }
-    }
-}
 
 fn main() {
     App::new()
@@ -159,7 +137,7 @@ fn setup_scene(
         Z_EXTENT / 2.,
     );
 
-    let indicator_ball = commands
+    commands
         .spawn((
             Mesh3d(meshes.add(sphere)),
             MeshMaterial3d(white_matl.clone()),
@@ -168,14 +146,8 @@ fn setup_scene(
             // Attach an observer to handle drag events
             Shape,
             IndicatorBall,
-            IndicatorState::new(
-                line_start.clone(),
-                line_end.clone(),
-                origin,
-                indicator_ball_radius,
-            ),
         ))
-        // Children be offset bt the parent transform
+        // Children position determined in relation to the parent transform.
         .with_children(|parent| {
             // Start Indicator ( lat, lon )
             parent.spawn((
