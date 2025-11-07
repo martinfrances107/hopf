@@ -20,7 +20,7 @@ pub enum HopfMeshError {
     #[error("Cannot create an HopfMesh RETRY COUNT exceeded.")]
     NRetriesExceeded {
         /// The number of retries used.
-        n_tries: u32,
+        n_tries: u16,
         /// The current point being used to generate the mesh.
         sp: SurfacePoint,
     },
@@ -39,7 +39,7 @@ pub enum HopfMeshError {
 struct Hopf {
     line_start: SurfacePoint,
     line_end: SurfacePoint,
-    n_loops: u32,
+    n_loops: u16,
 }
 
 impl Default for Hopf {
@@ -70,7 +70,7 @@ pub struct HopfMeshBuilder {
     /// Per vertex UVs.
     pub uv_store: Vec<[f32; 2]>,
     /// Number of tries when building a individual loop.
-    pub n_tries: u32,
+    pub n_tries: u16,
 
     // The last [`Hopf`] shape constructed.
     hopf: Hopf,
@@ -117,8 +117,8 @@ impl HopfMeshBuilder {
     pub fn new(
         line_start: &SurfacePoint,
         line_end: &SurfacePoint,
-        n_loops: u32,
-        n_tries: u32,
+        n_loops: u16,
+        n_tries: u16,
     ) -> Self {
         Self {
             hopf: Hopf {

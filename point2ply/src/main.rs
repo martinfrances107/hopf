@@ -28,7 +28,7 @@ fn main() -> Result<(), Error> {
     );
 
     let (points, _) = fibre
-        .build(20, 2_000_u32)
+        .build(20, u16::MAX)
         .map_err(|_| Error::other("Oscillation detected while adaptively constructing a fibre"))?;
 
     // let points = fibre.build_raw(1_f64, 20, 2_000_u32);

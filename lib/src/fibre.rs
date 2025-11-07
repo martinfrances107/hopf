@@ -46,9 +46,9 @@ struct Settings {
 // pub struct NTriesExceedError;
 pub enum FibreBuildError {
     /// Too many tries adjusting step size.
-    NTriesExceed(u32),
+    NTriesExceed(u16),
     /// Too few tries allowed adjusting step size.
-    NTriesTooLow(u32),
+    NTriesTooLow(u16),
 }
 
 impl Error for FibreBuildError {}
@@ -85,7 +85,9 @@ impl Fibre {
 
     /// Returns a points on the fibre (uniformly separated).
     ///
-    /// `target_samples` - The number of on the closed path
+    /// `target_samples` - The number of on the closed path (max value 65,535).
+    ///                  - Limited to u16 for convience in casting.
+    ///                  - u32 cannot be easily cast to a f32.
     ///
     /// `n_tries` - is the maximum number of tries in step size adjustment loop.
     ///
@@ -102,8 +104,8 @@ impl Fibre {
     /// between two values and `n_tries` is exceeded.
     pub fn build(
         &self,
-        target_samples: u32,
-        n_tries: u32,
+        target_samples: u16,
+        n_tries: u16,
     ) -> Result<(Vec<Vertex>, Vec<f32>), FibreBuildError> {
         const TOLLERANCE: f32 = 0.001_f32;
 
@@ -112,7 +114,7 @@ impl Fibre {
         let len = path_length(&fibre, &self.alpha, 10_000);
 
         // Target distance to travel per step;
-        let target_dist = len / target_samples as f32;
+        let target_dist = len / f32::from(target_samples);
 
         let delta = TOLLERANCE * target_dist;
 
@@ -120,7 +122,7 @@ impl Fibre {
         let distance_max = target_dist + delta;
 
         // Change in alpha. Dynamically adjusted step size.
-        let mut step = 4_f32 * f32::consts::PI / target_samples as f32;
+        let mut step = 4_f32 * f32::consts::PI / f32::from(target_samples);
 
         let mut f_last = fibre(*self.alpha.start());
         let mut alpha_last = *self.alpha.start();
@@ -182,17 +184,17 @@ impl Fibre {
     #[must_use]
     pub fn build_raw(
         &self,
-        target_samples: u32,
-        n_tries: u32,
+        target_samples: u16,
+        n_tries: u16,
     ) -> impl ExactSizeIterator<Item = Vertex> {
         let fibre = self.projected_fibre();
 
-        let step = 4_f32 * f32::consts::PI / target_samples as f32;
+        let step = 4_f32 * f32::consts::PI / f32::from(target_samples);
         let alpha_start = *self.alpha.start();
 
         (0..n_tries).map(move |i| {
             // let a = alpha_start + i as f64 * step;
-            let a = (i as f32).mul_add(step, alpha_start);
+            let a = f32::from(i).mul_add(step, alpha_start);
             fibre(a)
         })
     }

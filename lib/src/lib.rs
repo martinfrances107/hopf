@@ -50,9 +50,9 @@ impl PartialEq for Vertex {
 #[allow(clippy::cast_possible_truncation)]
 impl From<Vertex> for Vec3 {
     fn from(v: Vertex) -> Self {
-        let x = v.0.x as f32;
-        let y = v.0.y as f32;
-        let z = v.0.z as f32;
+        let x = v.0.x;
+        let y = v.0.y;
+        let z = v.0.z;
         Self::new(x, y, z)
     }
 }

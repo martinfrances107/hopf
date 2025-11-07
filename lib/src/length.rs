@@ -12,11 +12,11 @@ use crate::Vertex;
 pub(crate) fn path_length(
     f: impl Fn(f32) -> Vertex,
     alpha_range: &RangeInclusive<f32>,
-    n: u32,
+    n: u16,
 ) -> f32 {
     let mut alpha = *alpha_range.start();
     let mut f_last = f(alpha);
-    let step = (alpha_range.end() - alpha_range.start()) / n as f32;
+    let step = (alpha_range.end() - alpha_range.start()) / f32::from(n);
 
     (1..n).fold(0_f32, |acc, _| {
         alpha += step;
@@ -37,15 +37,19 @@ pub(crate) fn searchable_path_length<const N: usize>(
     fibre: impl Fn(f32) -> Vertex,
     alpha_range: &RangeInclusive<f32>,
 ) -> [(f32, f32); N] {
-    let n_32 = N as u32;
-    let step = (alpha_range.end() - alpha_range.start()) / n_32 as f32;
+    // Crazy casting rules is there a better way
+    let n_16 = u16::try_from(N).expect("N MUST be less than 65,535");
+    let n_f32 = f32::from(n_16);
+
+    let step = (alpha_range.end() - alpha_range.start()) / n_f32;
 
     let alpha_start = *alpha_range.start();
     let mut f_last = fibre(alpha_start);
     let mut d = 0_f32;
-    array::from_fn(move |i| {
+    array::from_fn(move |i_usize| {
+        let i = u16::try_from(i_usize).expect("N MUST be limited to 65,535");
         // let alpha = alpha_start + i as f64 * step;
-        let alpha = (i as f32).mul_add(step, alpha_start);
+        let alpha = f32::from(i).mul_add(step, alpha_start);
         let f = fibre(alpha);
         d += (f - f_last).length();
         f_last = f;
@@ -100,7 +104,7 @@ mod tests {
 
     #[test]
     fn length_arcs() {
-        let len = path_length(circle, &(0_f32..=2_f32 * f32::consts::PI), 1_000_000);
+        let len = path_length(circle, &(0_f32..=2_f32 * f32::consts::PI), u16::MAX);
         let expected = 2_f32 * f32::consts::PI;
         let rel_diff = (len - expected).abs() / expected;
         assert!(
@@ -108,7 +112,7 @@ mod tests {
             "len {len} expected {expected} frational difference {rel_diff} "
         );
 
-        let len = path_length(circle, &(0_f32..=f32::consts::PI / 2_f32), 1_000_000);
+        let len = path_length(circle, &(0_f32..=f32::consts::PI / 2_f32), u16::MAX);
         let expected = f32::consts::PI / 2_f32;
         let rel_diff = (len - expected).abs() / expected;
         assert!(

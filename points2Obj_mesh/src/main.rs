@@ -20,7 +20,7 @@ fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
 
     const NUM_POINTS_PER_LOOP: usize = 40;
-    const NUM_TRIES: u32 = 2000_u32;
+    const NUM_TRIES: u16 = u16::MAX;
     let stdout = std::io::stdout();
     let handle = stdout.lock();
     let mut writer = BufWriter::new(handle);

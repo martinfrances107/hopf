@@ -18,10 +18,8 @@ fn reparametrize(f: &dyn Fn(f32) -> f32, x_start: f32, x_end: f32, n_out: usize)
     const N_DETAILED: usize = 1000usize;
     const N_DETAILED_FLOAT: f64 = N_DETAILED as f32;
     let x_arr = (0..=N_DETAILED)
-        .map(|i| x_start + (x_end - x_start) * (i as f32) / N_DETAILED_FLOAT)
+        .map(|i| x_start + (x_end - x_start) * f32::from(i) / N_DETAILED_FLOAT)
         .collect::<Vec<_>>();
-
-    // println!("x_arr {:#?}", x_arr);
 
     let mut dist = 0_f32;
     let mut dist_arr = Vec::with_capacity(N_DETAILED);
