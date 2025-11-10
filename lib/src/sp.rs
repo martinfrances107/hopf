@@ -1,4 +1,5 @@
 use core::ops::Add;
+use core::ops::Sub;
 
 use glam::Vec2;
 use glam::Vec3;
@@ -25,9 +26,20 @@ impl core::fmt::Debug for SurfacePoint {
     }
 }
 
+impl core::fmt::Display for SurfacePoint {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        // a
+        write!(
+            f,
+            "(lat: {}, lon: {} degrees)",
+            self.lat.to_degrees(),
+            self.lon.to_degrees()
+        )
+    }
+}
 impl SurfacePoint {
     /// Convert to Bevy's cartesian coord system
-    /// Bevy uses "right-handed Y-up".
+    /// Bevy uses right-handed Y up.
     /// X is from left to right of screen.
     /// Y is from bottom to top.
     /// Z is out of screen ( towards the viewer)
@@ -43,6 +55,15 @@ impl SurfacePoint {
             // Should this is be negative?
             z: -r * cos_lat * sin_lon,
         }
+    }
+
+    fn extract_surface_point(direction: Vec3) -> Self {
+        let Vec3 { x, y, z } = direction;
+        println!("direction {direction:#?}");
+        // hypotenu is 1.
+        let lat = f32::asin(y);
+        let lon = f32::atan2(-z, x);
+        Self { lat, lon }
     }
 }
 
@@ -66,13 +87,34 @@ impl Add<SurfacePoint> for f32 {
     }
 }
 
+impl Add<Self> for SurfacePoint {
+    type Output = Self;
+    fn add(self, other: Self) -> Self {
+        Self {
+            lat: self.lat + other.lat,
+            lon: self.lon + other.lon,
+        }
+    }
+}
+
+impl Sub<Self> for SurfacePoint {
+    type Output = Self;
+    fn sub(self, other: Self) -> Self {
+        Self {
+            lat: self.lat - other.lat,
+            lon: self.lon - other.lon,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
     use glam::Vec3;
 
     #[test]
-    // Bevy uses "right-handed Y-up" coordinate system
+    // Bevy uses right-handed Y up coordinate system
     // X is left to right,
     // Y bottom to top of screen
     // Z is out of screen ( towards the viewer)
