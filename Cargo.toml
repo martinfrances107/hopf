@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "bevy_hopf",
+  "dial",
   "lib",
   "point2ply",
   "points2Obj_lines",
