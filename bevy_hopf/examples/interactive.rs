@@ -1,23 +1,4 @@
-//! A simple 3D scene to demonstrate mesh picking.
-//!
-//! [`bevy::picking::backend`] provides an API for adding picking hit tests to any entity. To get
-//! started with picking 3d meshes, the [`MeshPickingPlugin`] is provided as a simple starting
-//! point, especially useful for debugging. For your game, you may want to use a 3d picking backend
-//! provided by your physics engine, or a picking shader, depending on your specific use case.
-//!
-//! [`bevy::picking`] allows you to compose backends together to make any entity on screen pickable
-//! with pointers, regardless of how that entity is rendered. For example, `bevy_ui` and
-//! `bevy_sprite` provide their own picking backends that can be enabled at the same time as this
-//! mesh picking backend. This makes it painless to deal with cases like the UI or sprites blocking
-//! meshes underneath them, or vice versa.
-//!
-//! If you want to build more complex interactions than afforded by the provided pointer events, you
-//! may want to use [`MeshRayCast`] or a full physics engine with raycasting capabilities.
-//!
-//! By default, the mesh picking plugin will raycast against all entities, which is especially
-//! useful for debugging. If you want mesh picking to be opt-in, you can set
-//! [`MeshPickingSettings::require_markers`] to `true` and add a [`Pickable`] component to the
-//! desired camera and target entities.
+//! A gizmo, where the handles control the generation of a hopf_mesh.
 #![deny(clippy::all)]
 #![warn(clippy::cargo)]
 #![warn(clippy::complexity)]
@@ -31,6 +12,7 @@
 use core::f32;
 use core::f32::consts::PI;
 
+use bevy::input::common_conditions::input_pressed;
 use bevy::prelude::Cone;
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
 use bevy_hopf::HopfPlugin;
@@ -45,8 +27,12 @@ fn main() {
         // MeshPickingPlugin is not a default plugin
         .add_plugins((DefaultPlugins, HopfPlugin, MeshPickingPlugin))
         .add_systems(Startup, setup_scene)
-        .add_systems(Update, (draw_mesh_intersections, rotate))
-        .add_systems(Update, draw_cursor)
+        .add_systems(Update, (draw_mesh_intersections, rotate, mouse_down_system))
+        // .add_systems(Update, draw_cursor)
+        .add_systems(
+            Update,
+            mouse_down_system.run_if(input_pressed(MouseButton::Left)),
+        )
         .run();
 }
 
@@ -67,7 +53,7 @@ struct Ground;
 #[derive(Component)]
 struct Hopf;
 
-const SHAPES_X_EXTENT: f32 = 10.0;
+const SHAPES_X_EXTENT: f32 = 8.0;
 const Z_EXTENT: f32 = 10.0;
 
 fn setup_scene(
@@ -102,7 +88,7 @@ fn setup_scene(
 
     // North pole
     let line_start = SurfacePoint {
-        lat: 45_f32.to_radians(),
+        lat: 0_f32.to_radians(),
         lon: 0_f32,
     };
 
@@ -111,16 +97,18 @@ fn setup_scene(
         lon: 0_f32.to_radians(),
     };
 
+    // The Entity transform will be used SOLEY to set the lat /lon.
+    // So here we use mesh_with_transform() to modify the virtex points directly.
     let indicator = mesh_with_transform(
         &Cone::new(indicator_radius, indicator_height).into(),
-        // place indicator as it were on an along the x axes
+        // place indicator as it were on an along the z-axes
         // with radius, as if indication were lan 0, long 0
-        &Transform::from_xyz(indicator_ball_radius + indicator_height / 2_f32, 0.0, 0.0)
+        &Transform::from_xyz(0.0, 0.0, -indicator_ball_radius - indicator_height / 2_f32)
             .with_rotation(Quat::from_euler(
-                EulerRot::XYZ,
-                0_f32,
-                0_f32,
+                EulerRot::XYZEx,
                 90.0_f32.to_radians(),
+                0_f32,
+                0_f32,
             )),
     )
     .unwrap();
@@ -151,36 +139,37 @@ fn setup_scene(
         .with_children(|parent| {
             // Start Indicator ( lat, lon )
             parent.spawn((
+                IndicatorHandle,
                 Mesh3d(indicator.clone()),
                 MeshMaterial3d(indicator_mtl.clone()),
-                Transform::from_rotation(Quat::from_euler(
-                    EulerRot::XYZ,
-                    0_f32,
-                    line_start.lon,
-                    line_start.lat,
-                )),
-                IndicatorHandle,
+                Transform::default(),
+                // Transform::from_rotation(Quat::from_euler(
+                //     EulerRot::XYZEx,
+                //     0_f32,
+                //     line_start.lon,
+                //     line_start.lat,
+                // )),
             ));
 
             // End Indicator is ( lat, lon )
-            parent.spawn((
-                Mesh3d(indicator),
-                MeshMaterial3d(indicator_mtl),
-                Transform::from_rotation(Quat::from_euler(
-                    EulerRot::XYZ,
-                    0_f32,
-                    line_end.lon,
-                    line_end.lat,
-                )),
-                IndicatorHandle,
-            ));
+            // parent.spawn((
+            //     Mesh3d(indicator),
+            //     MeshMaterial3d(indicator_mtl),
+            //     Transform::from_rotation(Quat::from_euler(
+            //         EulerRot::XYZEx,
+            //         0_f32,
+            //         line_end.lon,
+            //         line_end.lat,
+            //     )),
+            //     IndicatorHandle,
+            // ));
         })
         .observe(update_material_on::<Pointer<Over>>(hover_matl.clone()))
         .observe(update_material_on::<Pointer<Out>>(white_matl))
         .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
         .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
-        .observe(rotate_on_drag)
-        .observe(rotate_handle_on_drag);
+        .observe(rotate_on_drag);
+    // .observe(rotate_handle_on_drag);
 
     let line_start = SurfacePoint {
         lat: 10_f32.to_radians(),
@@ -291,67 +280,49 @@ fn draw_mesh_intersections(pointers: Query<&PointerInteraction>, mut gizmos: Giz
 }
 
 /// A system that rotates all shapes.
-fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
-    for mut transform in &mut query {
-        transform.rotate_y(time.delta_secs() / 2.);
-    }
+fn rotate(mut _query: Query<&mut Transform, With<Shape>>, _time: Res<Time>) {
+    // for mut transform in &mut query {
+    //     transform.rotate_y(time.delta_secs() / 2.);
+    // }
 }
 
 /// An observer to rotate an entity when it is dragged
-fn rotate_on_drag(drag: On<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
-    let mut transform = transforms.get_mut(drag.entity).unwrap();
-    transform.rotate_y(drag.delta.x * 0.02);
-    transform.rotate_x(drag.delta.y * 0.02);
+fn rotate_on_drag(_drag: On<Pointer<Drag>>, _transforms: Query<&mut Transform>) {
+    // let mut transform = transforms.get_mut(drag.entity).unwrap();
+    // transform.rotate_y(drag.delta.x * 0.02);
+    // transform.rotate_x(drag.delta.y * 0.02);
 }
 
-fn rotate_handle_on_drag(
-    drag: On<Pointer<Drag>>,
-    ib_query: Query<(&IndicatorBall, &Children)>,
-    mut child_query: Query<(&IndicatorHandle, &mut Transform)>,
+fn mouse_down_system(
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    pointers: Query<&PointerInteraction>,
+    indicator_ball: Single<&Children, With<IndicatorBall>>,
+    mut handles: Query<(&IndicatorHandle, &mut Transform)>,
 ) {
-    // use scaled delta values to create rotation updates from start handle
-    let lat_change = drag.delta.x * 0.02;
-    let lon_change = drag.delta.y * 0.02;
+    // Is this needed as the system is wrapped in a  runs_if()
+    // Could reverse the nested for loops here
+    // and search handles first.
+    if mouse_button_input.pressed(MouseButton::Left) {
+        for normal in pointers
+            .iter()
+            .filter_map(|interaction| interaction.get_nearest_hit())
+            .filter_map(|(_entity, hit)| hit.normal)
+        {
+            // There is only one hit here.
 
-    // FIX currently update both children must seleect base on proximity and keypress.
-    for (_, children) in ib_query {
-        for child in children {
-            if let Ok((_, mut handle_transform)) = child_query.get_mut(*child) {
-                // TODO two ratations lead to two separte Quat
-                // make this one once stable
-                handle_transform.rotate_z(lat_change);
-                handle_transform.rotate_y(lon_change);
+            // TODO: Select handle based on the proximity to hit point.
+            for handle_id in indicator_ball.iter() {
+                if let Ok((_indicator_handle, mut transform)) = handles.get_mut(handle_id) {
+                    let from = transform.forward().into();
+                    println!("surface normal {normal}");
+                    println!("forward {}", from);
+
+                    let quat = Quat::from_rotation_arc(from, normal);
+                    transform.rotate(quat);
+                    println!("transform (after) {}", transform.forward());
+                    println!();
+                }
             }
         }
-    }
-}
-
-/// DONT'T COPY: This is really laggy ( it was taken from the examples!)
-fn draw_cursor(
-    camera_query: Single<(&Camera, &GlobalTransform)>,
-    ground: Single<&GlobalTransform, With<Ground>>,
-    window: Single<&Window>,
-    mut gizmos: Gizmos,
-) {
-    let (camera, camera_transform) = *camera_query;
-
-    if let Some(cursor_position) = window.cursor_position()
-        // Calculate a ray pointing from the camera into the world based on the cursor's position.
-        && let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_position)
-        // Calculate if and at what distance the ray is hitting the ground plane.
-        && let Some(distance) =
-            ray.intersect_plane(ground.translation(), InfinitePlane3d::new(ground.up()))
-    {
-        let point = ray.get_point(distance);
-
-        // Draw a circle just above the ground plane at that position.
-        gizmos.circle(
-            Isometry3d::new(
-                point + ground.up() * 0.01,
-                Quat::from_rotation_arc(Vec3::Z, ground.up().as_vec3()),
-            ),
-            0.2,
-            Color::WHITE,
-        );
     }
 }

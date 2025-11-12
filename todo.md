@@ -1,6 +1,30 @@
 # TODO
 
 
+1) Add a cargo binary to output a SVG
+  -- Major tick marks i % 30 == 0
+  -- Minor tick marks i % 30 + 15 = 0
+  -- tick marks every 5
+  -- text "center anchored" above the Major ticks
+
+  Add White color and alpha channel for
+
+
+[] - Indicator sphere in blender
+   -- learn gltf loading
+   Want Red for norhern hemisphere
+   Blue for southen Hemispahere
+
+   -- apply clear coat material
+   -- define materials in gltf along with (unused in blender brighter versiosn)
+
+[] - select handle based on hovering proximity.
+
+[] - indicator color --- anistropic brush steel
+
+[] - when hovering over indicator ball -- transition to brighter colors.
+
+
 [] - Bevy App user inputs 2 points to form lines
 
     - handles are defined as upside down triangle.

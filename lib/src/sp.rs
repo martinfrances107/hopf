@@ -45,15 +45,26 @@ impl SurfacePoint {
     /// Z is out of screen ( towards the viewer)
     ///
     /// The north pole ( lat = 90degrees, lon = X )  is +Y
+    ///
+    /// The -Z axes is aligned to lat 0, long 0.
+    /// So that we can use `Transform::forward()`.
+    /// NB -Z points into the screen.
+    ///
+    /// Y - North Polt (lan 90 degree, lon X)
+    /// |
+    /// |  -Z .. (lat 0, lon 0)
+    /// | /
+    /// |/
+    /// +------> X
     #[must_use]
     pub fn to_cartesian(&self, r: f32) -> Vec3 {
         let (sin_lat, cos_lat) = self.lat.sin_cos();
         let (sin_lon, cos_lon) = self.lon.sin_cos();
         Vec3 {
-            x: r * cos_lat * cos_lon,
+            x: r * cos_lat * sin_lon,
             y: r * sin_lat,
-            // Should this is be negative?
-            z: -r * cos_lat * sin_lon,
+            // Negative points forward into the screen.
+            z: -r * cos_lat * cos_lon,
         }
     }
 
@@ -123,28 +134,28 @@ mod test {
     fn compass() {
         // (input, expected)
         let cases = [
-            // X axis
             (
+                //(0,0) is aligned the bevy's convept of forward --- The -Z axis .. into the screen
                 SurfacePoint {
                     lat: 0_f32,
                     lon: 0_f32,
                 },
                 Vec3 {
-                    x: 1_f32,
+                    x: 0_f32,
                     y: 0_f32,
-                    z: 0_f32,
+                    z: -1_f32,
                 },
             ),
-            // -Z axis
+            // Rotate 90 long, rotates the the +X axis.
             (
                 SurfacePoint {
                     lat: 0_f32,
                     lon: 90_f32.to_radians(),
                 },
                 Vec3 {
-                    x: 0_f32,
+                    x: 1_f32,
                     y: 0_f32,
-                    z: -1_f32,
+                    z: 0_f32,
                 },
             ),
             // Y -- North pole
@@ -163,9 +174,9 @@ mod test {
 
         for (sp, expected) in cases {
             let output = sp.to_cartesian(1_f32);
-            let err_vec = output - expected;
+
             assert!(
-                err_vec.length() < 1e-6,
+                output.abs_diff_eq(expected, 1e-6),
                 "Failed: sp {sp:#?} -> {output} expected {expected:#?}"
             );
         }
