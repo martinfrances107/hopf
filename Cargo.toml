@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "bevy_hopf",
-  "./lib",
+  "lib",
   "point2ply",
   "points2Obj_lines",
   "points2Obj_mesh",
