@@ -1,13 +1,12 @@
 static SVG_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   width="1365"
-   height="768"
-   viewBox="-5 0 365 30"
+   width="1200px"
+   height="120px"
+   viewBox="-3 0 357 36"
    version="1.1"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
 
-   <rect x="-5" y="0" width="370" height="30" style="fill:#7F7F7F00" />
     <g
       text-anchor="middle"
       style="font-weight:900;font-size:9.525px;font-family:Timmana;-inkscape-font-specification:'Timmana, Heavy';stroke-width:0.0132292;stroke-linecap:round;stroke-linejoin:round"
@@ -15,7 +14,6 @@ static SVG_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="no
 "#;
 
 static SVG_FOOTER: &str = r#"</g>
-
 </svg>"#;
 
 fn main() {
@@ -27,7 +25,7 @@ fn main() {
             // Major tick has text
             println!(
                 r#"<text
-    style="fill:#000000FF;stroke:#000000FF"
+    fill="black" stroke="black"
     x="{angle}"
     y="29"
     >{angle}</text>"#
@@ -37,7 +35,7 @@ fn main() {
                 r#"<rect
     width="1.0"
     height="20.0"
-    style="fill:#FFFFFFFF;stroke:#FFFFFFFF"
+    fill="white" stroke="white"
     x="{angle}"
     y="0" />"#
             );
@@ -47,7 +45,7 @@ fn main() {
                 r#"<rect
     width="1.0"
     height="10.0"
-    style="fill:#FFFFFFFF;stroke:#FFFFFFFF"
+    fill="white" stroke="white"
     x="{angle}"
     y="0" />"#
             );
@@ -57,7 +55,7 @@ fn main() {
                 r#"<rect
      width="1.0"
      height="5.0"
-     style="fill:#FFFFFFFF;stroke:#FFFFFFFF"
+     fill="white" stroke="white"
      x="{angle}"
      y="0" />"#
             );

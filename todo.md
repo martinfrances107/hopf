@@ -4,6 +4,7 @@
 Fix issue with dial -- 
   color with alpha should be used for decal 
   -- red channel used for height input into displacement node 
+  -- Set aspect ratio to be 10 viewBox w=360, h=36 output 1200x120
   BUGS
     Decal is not working 
     Black text is not insert
