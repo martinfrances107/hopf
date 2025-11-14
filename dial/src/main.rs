@@ -1,13 +1,13 @@
 static SVG_HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   width="360mm"
-   height="100mm"
-   viewBox="-20 -20 380 70"
+   width="1365"
+   height="768"
+   viewBox="-5 0 365 30"
    version="1.1"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
 
-   <rect x="-20" y="-20" width="400" height="90" style="fill:#7F7F7FFF" />
+   <rect x="-5" y="0" width="370" height="30" style="fill:#7F7F7F00" />
     <g
       text-anchor="middle"
       style="font-weight:900;font-size:9.525px;font-family:Timmana;-inkscape-font-specification:'Timmana, Heavy';stroke-width:0.0132292;stroke-linecap:round;stroke-linejoin:round"

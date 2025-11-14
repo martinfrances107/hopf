@@ -1,14 +1,13 @@
 # TODO
 
 
-1) Add a cargo binary to output a SVG
-  -- Major tick marks i % 30 == 0
-  -- Minor tick marks i % 30 + 15 = 0
-  -- tick marks every 5
-  -- text "center anchored" above the Major ticks
-
-  Add White color and alpha channel for
-
+Fix issue with dial -- 
+  color with alpha should be used for decal 
+  -- red channel used for height input into displacement node 
+  BUGS
+    Decal is not working 
+    Black text is not insert
+    Why is color black ... not orange as set by the decals color mixer.
 
 [] - Indicator sphere in blender
    -- learn gltf loading
