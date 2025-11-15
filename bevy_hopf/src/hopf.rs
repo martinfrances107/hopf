@@ -145,7 +145,7 @@ impl HopfMeshBuilder {
     /// `HopfMeshError::LineError` if  `line_start` and `line_end` are identical.
     ///
     /// `HopfMeshError::NRetriesExceeded` if any loop cannot be constructed.
-    pub fn construct<const N: usize>(mut self) -> Result<Self, HopfMeshError> {
+    pub fn construct<const N_POINTS_PER_LOOP: usize>(mut self) -> Result<Self, HopfMeshError> {
         // weave is a series of seed points which will be transformed into fibres.
         let line_start = self.hopf.line_start;
         let line_end = self.hopf.line_end;
@@ -167,7 +167,7 @@ impl HopfMeshBuilder {
         //         lon: initial_lon,
         //     })?;
 
-        let (mut points_last, _alphas) = fibre_last.build_uniform::<N>();
+        let (mut points_last, _alphas) = fibre_last.build_uniform::<N_POINTS_PER_LOOP>();
 
         for sp in weave {
             let fibre = Fibre::new(sp, 0_f32..=4.0 * core::f32::consts::PI);
@@ -181,7 +181,7 @@ impl HopfMeshBuilder {
             //     })?;
             // debug_assert_eq!(points.len(), 80);
 
-            let (points, _alphas) = fibre.build_uniform::<N>();
+            let (points, _alphas) = fibre.build_uniform::<N_POINTS_PER_LOOP>();
 
             //  0 - 3
             //  | / |
@@ -191,7 +191,7 @@ impl HopfMeshBuilder {
             // Given a quad ( points 0, 1, 2, 3 )
             // form triangles (0,1,3) and (1,2,3)
             // add triangles will de-dupe points and compute normals.
-            for i in 1..N {
+            for i in 1..N_POINTS_PER_LOOP {
                 let p0 = &points_last[i - 1];
                 let p1 = &points_last[i];
                 let p2 = &points[i];

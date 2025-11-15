@@ -33,12 +33,12 @@ pub(crate) fn path_length(
 //
 // A value of 1024 should be enough to resample
 // to 16 evenly spaced points.
-pub(crate) fn searchable_path_length<const N: usize>(
+pub(crate) fn searchable_path_length<const N_POINTS_PER_LOOP: usize>(
     fibre: impl Fn(f32) -> Vertex,
     alpha_range: &RangeInclusive<f32>,
-) -> [(f32, f32); N] {
+) -> [(f32, f32); N_POINTS_PER_LOOP] {
     // Crazy casting rules is there a better way
-    let n_16 = u16::try_from(N).expect("N MUST be less than 65,535");
+    let n_16 = u16::try_from(N_POINTS_PER_LOOP).expect("N MUST be less than 65,535");
     let n_f32 = f32::from(n_16);
 
     let step = (alpha_range.end() - alpha_range.start()) / n_f32;
@@ -59,19 +59,19 @@ pub(crate) fn searchable_path_length<const N: usize>(
 
 // Returns a coarse set of (alpha, distance) values
 // computed from fine grained sampling.
-pub(crate) fn resample_fibre<const N: usize, const M: usize>(
+pub(crate) fn resample_fibre<const N_DETAILED: usize, const N_COARSE: usize>(
     fibre: impl Fn(f32) -> Vertex,
     alpha_range: &RangeInclusive<f32>,
-) -> [(f32, f32); M] {
-    debug_assert!(N > M);
+) -> [(f32, f32); N_COARSE] {
+    debug_assert!(N_DETAILED > N_COARSE);
 
     // (alpha, path length) look up table.
     //
     // Fine sample of fibre.
-    let lut = searchable_path_length::<N>(fibre, alpha_range);
+    let lut = searchable_path_length::<N_DETAILED>(fibre, alpha_range);
 
-    let m_32 = M as u32;
-    let step = lut[N - 1].1 / m_32 as f32;
+    let m_32 = N_COARSE as u32;
+    let step = lut[N_DETAILED - 1].1 / m_32 as f32;
     // Reduce to a unformly separated set.
     array::from_fn(move |i| {
         let dist_threshold = i as f32 * step;

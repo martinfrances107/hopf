@@ -205,16 +205,16 @@ impl Fibre {
     /// TODO Could move the LUT into Self to avoid constant memory allocation/deallocation.
     /// TODO Could remove scaling. blender allows for a scaling at the obj level.
     #[must_use]
-    pub fn build_uniform<const M: usize>(&self) -> (Vec<Vertex>, Vec<f32>) {
-        let lut = resample_fibre::<1024, M>(self.projected_fibre(), &self.alpha);
+    pub fn build_uniform<const N_POINTS_PER_LOOP: usize>(&self) -> (Vec<Vertex>, Vec<f32>) {
+        let lut = resample_fibre::<1024, N_POINTS_PER_LOOP>(self.projected_fibre(), &self.alpha);
 
-        let path_length = lut[M - 1].1;
-        let step = path_length / M as f32;
+        let path_length = lut[N_POINTS_PER_LOOP - 1].1;
+        let step = path_length / N_POINTS_PER_LOOP as f32;
 
         let fibre = self.projected_fibre();
 
         let mut last_match = 0_usize;
-        (0..M)
+        (0..N_POINTS_PER_LOOP)
             .map(|i| {
                 // a
                 let dist_threshold = i as f32 * step;
