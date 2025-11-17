@@ -11,7 +11,7 @@
 
 use std::io::{BufWriter, Error};
 
-use hopf::{generate_obj_lines, sp::SurfacePoint};
+use hopf::{F32_4PI, generate_obj_lines, sp::SurfacePoint};
 
 fn main() -> Result<(), std::io::Error> {
     // TODO Take seed from stdIn.
@@ -42,12 +42,9 @@ fn main() -> Result<(), std::io::Error> {
 
     let mut lines = vec![];
     for sp in seeds {
-        let fibre = hopf::fibre::Fibre::new(sp, 0_f32..=4.0 * core::f32::consts::PI);
+        let fibre = hopf::fibre::Fibre::new(sp, 0_f32..=F32_4PI);
 
-        // let (points, _) = fibre.build(40, 2000_u32).map_err(|_| {
-        //     std::io::Error::other("Oscillation detected while adaptively constructing a fibre")
-        // })?;
-        let (points, _) = fibre.build_uniform::<40>();
+        let (points, _) = fibre.build_uniform::<10>();
 
         lines.push(points);
     }

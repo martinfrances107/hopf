@@ -33,6 +33,9 @@ use std::ops::Sub;
 use bytemuck::{Pod, Zeroable};
 use glam::Vec3;
 
+/// MAX range used in fibre.
+pub static F32_4PI: f32 = 4_f32 * core::f32::consts::PI;
+
 /// Hashable version of a point in E3.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, Pod, Zeroable)]
@@ -175,14 +178,11 @@ where
         }
         write!(out, "l")?;
 
-        // First point of the loop.
-        let index0 = index;
         for _ in line {
             write!(out, " {index}")?;
             index += 1;
         }
-        // Close the loop by appending the start of the loop to the end.
-        writeln!(out, " {index0}")?;
+        writeln!(out)?;
     }
     Ok(())
 }

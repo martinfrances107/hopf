@@ -41,15 +41,14 @@ pub(crate) fn searchable_path_length<const N_POINTS_PER_LOOP: usize>(
     let n_16 = u16::try_from(N_POINTS_PER_LOOP).expect("N MUST be less than 65,535");
     let n_f32 = f32::from(n_16);
 
-    let step = (alpha_range.end() - alpha_range.start()) / n_f32;
+    let alpha_step = (alpha_range.end() - alpha_range.start()) / n_f32;
 
     let alpha_start = *alpha_range.start();
     let mut f_last = fibre(alpha_start);
     let mut d = 0_f32;
     array::from_fn(move |i_usize| {
         let i = u16::try_from(i_usize).expect("N MUST be limited to 65,535");
-        // let alpha = alpha_start + i as f64 * step;
-        let alpha = f32::from(i).mul_add(step, alpha_start);
+        let alpha = f32::from(i).mul_add(alpha_step, alpha_start);
         let f = fibre(alpha);
         d += (f - f_last).length();
         f_last = f;
@@ -64,12 +63,12 @@ pub(crate) fn resample_fibre<const N_DETAILED: usize, const N_COARSE: usize>(
     alpha_range: &RangeInclusive<f32>,
 ) -> [(f32, f32); N_COARSE] {
     debug_assert!(N_DETAILED > N_COARSE);
-
-    // (alpha, path length) look up table.
+    // (alpha, path length) look up table - LUT.
     //
     // Fine sample of fibre.
     let lut = searchable_path_length::<N_DETAILED>(fibre, alpha_range);
-
+    // println!("LUT");
+    // println!("{lut:#?}");
     let m_32 = N_COARSE as u32;
     let step = lut[N_DETAILED - 1].1 / m_32 as f32;
     // Reduce to a unformly separated set.
@@ -79,7 +78,7 @@ pub(crate) fn resample_fibre<const N_DETAILED: usize, const N_COARSE: usize>(
             .iter()
             .find(|&&(_, d)| {
                 // Threshold distance.
-                d >= dist_threshold
+                d.ge(&dist_threshold)
             })
             .unwrap_or(&(f32::NAN, f32::NAN));
         (alpha, dist)

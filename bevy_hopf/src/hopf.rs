@@ -7,6 +7,7 @@ use bevy_mesh::Mesh;
 use bevy_mesh::MeshBuilder;
 use bevy_mesh::Meshable;
 use bevy_mesh::PrimitiveTopology;
+use hopf::F32_4PI;
 use thiserror::Error;
 
 use hopf::Vertex;
@@ -157,7 +158,7 @@ impl HopfMeshBuilder {
             lines_end: line_end,
         })?;
 
-        let fibre_last = Fibre::new(sp_initial, 0_f32..=4.0 * core::f32::consts::PI);
+        let fibre_last = Fibre::new(sp_initial, 0_f32..=F32_4PI);
 
         // let (mut points_last, _alphas) = fibre_last
         //     .build(self.scale, N as u32, self.n_tries)
@@ -170,7 +171,7 @@ impl HopfMeshBuilder {
         let (mut points_last, _alphas) = fibre_last.build_uniform::<N_POINTS_PER_LOOP>();
 
         for sp in weave {
-            let fibre = Fibre::new(sp, 0_f32..=4.0 * core::f32::consts::PI);
+            let fibre = Fibre::new(sp, 0_f32..=F32_4PI);
 
             // let (points, _alphas) = fibre
             //     .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
