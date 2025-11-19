@@ -261,7 +261,7 @@ mod tests {
         let alpha_last = alphas.last().unwrap();
         // 1 part in 100 ... this seems loose.
         assert!(
-            relative_eq!(*alpha_last, F32_4PI, max_relative = 1e-2),
+            relative_eq!(*alpha_last, F32_4PI, max_relative = 1e-3),
             "observed {alpha_last}, expected {F32_4PI} "
         );
 
@@ -271,7 +271,7 @@ mod tests {
 
         let delta = (*first_point - *last_point).length();
         assert!(
-            delta < 1e-1,
+            delta < 1e-2,
             "for a close path the first and last points must be close {first_point:#?} {last_point:#?} {delta}"
         );
     }

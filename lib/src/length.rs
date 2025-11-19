@@ -118,7 +118,7 @@ mod tests {
         let expected = f32::consts::PI / 2_f32;
         let rel_diff = (len - expected).abs() / expected;
         assert!(
-            rel_diff < 1e-2,
+            rel_diff < 1e-3,
             "len {len} expected {expected} frational difference {rel_diff} "
         );
     }
@@ -129,7 +129,7 @@ mod tests {
         let expected = 2_f32 * f32::consts::PI;
         let rel_diff = (len - expected).abs() / expected;
         assert!(
-            rel_diff < 1e-2,
+            rel_diff < 1e-3,
             "len {len} expected {expected} frational difference {rel_diff} "
         );
     }
@@ -166,6 +166,6 @@ mod tests {
         // Final valus is a expected
         let &(_, max) = path_store.last().unwrap_or(&(f32::NAN, f32::NAN));
         let rel_error = (core::f32::consts::TAU - max).abs() / core::f32::consts::TAU;
-        assert!(rel_error < 1e-3, "error {}", rel_error);
+        assert!(rel_error < 1e-4, "error {}", rel_error);
     }
 }
