@@ -67,20 +67,31 @@ pub(crate) fn resample_fibre<const N_DETAILED: usize, const N_COARSE: usize>(
     //
     // Fine sample of fibre.
     let lut = searchable_path_length::<N_DETAILED>(fibre, alpha_range);
-    // println!("LUT");
-    // println!("{lut:#?}");
     let m_32 = N_COARSE as u32;
-    let step = lut[N_DETAILED - 1].1 / m_32 as f32;
+    let step = lut[N_DETAILED - 1].1 / (m_32 - 1) as f32;
     // Reduce to a unformly separated set.
     array::from_fn(move |i| {
         let dist_threshold = i as f32 * step;
-        let &(alpha, dist) = lut
-            .iter()
-            .find(|&&(_, d)| {
-                // Threshold distance.
-                d.ge(&dist_threshold)
-            })
-            .unwrap_or(&(f32::NAN, f32::NAN));
+        let (alpha, dist) = match lut.iter().find(|&&(_, d)| {
+            // Threshold distance.
+            d >= dist_threshold
+        }) {
+            Some((a, d)) => (*a, *d),
+            None => {
+                // Not found! ... Re-examine endpoint with a different test
+                // if the dist is slightly under threshold still match.
+                if let Some((last_alpha, last_dist)) = lut.last() {
+                    if (last_dist - dist_threshold).abs() < 1e-3 {
+                        (*last_alpha, *last_dist)
+                    } else {
+                        (f32::NAN, f32::NAN)
+                    }
+                } else {
+                    (f32::NAN, f32::NAN)
+                }
+            }
+        };
+
         (alpha, dist)
     })
 }
@@ -102,15 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn length_arcs() {
-        let len = path_length(circle, &(0_f32..=2_f32 * f32::consts::PI), u16::MAX);
-        let expected = 2_f32 * f32::consts::PI;
-        let rel_diff = (len - expected).abs() / expected;
-        assert!(
-            rel_diff < 1e-2,
-            "len {len} expected {expected} frational difference {rel_diff} "
-        );
-
+    fn half_circle() {
         let len = path_length(circle, &(0_f32..=f32::consts::PI / 2_f32), u16::MAX);
         let expected = f32::consts::PI / 2_f32;
         let rel_diff = (len - expected).abs() / expected;
@@ -120,13 +123,24 @@ mod tests {
         );
     }
 
-    // For a unit circle alpha is the path length.
+    #[test]
+    fn full_circle() {
+        let len = path_length(circle, &(0_f32..=2_f32 * f32::consts::PI), u16::MAX);
+        let expected = 2_f32 * f32::consts::PI;
+        let rel_diff = (len - expected).abs() / expected;
+        assert!(
+            rel_diff < 1e-2,
+            "len {len} expected {expected} frational difference {rel_diff} "
+        );
+    }
+
+    // Use a unit circle to confirm points are searchable.
     #[test]
     fn searchable() {
         static N: usize = 24 * 1024;
-        let path_store = searchable_path_length::<N>(circle, &(0_f32..=2_f32 * f32::consts::PI));
+        let path_store = searchable_path_length::<N>(circle, &(0_f32..=f32::consts::TAU));
 
-        // Quarter
+        // Search for a point quater of the way around the circle.
         let &(alpha, _) = path_store
             .iter()
             .find(|&&(_, dist)| {
@@ -138,7 +152,7 @@ mod tests {
         println!("error {}", rel_error);
         assert!(rel_error < 1e-3);
 
-        // Half circle.
+        // Search for a point half way around the circle.
         let &(alpha, _) = path_store
             .iter()
             .find(|&&(_, dist)| {
@@ -153,20 +167,5 @@ mod tests {
         let &(_, max) = path_store.last().unwrap_or(&(f32::NAN, f32::NAN));
         let rel_error = (core::f32::consts::TAU - max).abs() / core::f32::consts::TAU;
         assert!(rel_error < 1e-3, "error {}", rel_error);
-
-        // This fails an show that inversion can only be used for something
-        // less than but not equal to the final value.
-        //
-        // Full circle
-        // let &(alpha, _) = path_store
-        //     .iter()
-        //     .find(|&&(_, dist)| {
-        //         // Threshold distance.
-        //         dist >= core::f64::consts::TAU
-        //     })
-        //     .unwrap_or(&(f64::NAN, f64::NAN));
-        // let rel_error = (core::f64::consts::TAU - alpha).abs() / core::f64::consts::TAU;
-        // println!("error {}", rel_error);
-        // assert!(rel_error < 1e-4);
     }
 }

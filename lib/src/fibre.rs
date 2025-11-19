@@ -24,16 +24,17 @@ static LON_RANGE: RangeInclusive<f32> = 0_f32..=core::f32::consts::TAU;
 /// where alpha extends the fibre from the base space.
 #[derive(Debug)]
 pub struct Fibre {
-    sp: SurfacePoint,
-
     // alpha [0..=4PI] is the domain of the fibre.
     //
     // NB alpha=0 is the same point as alpha=4PI.
     // This duplication is useful when defining a closed path.
     alpha: RangeInclusive<f32>,
+
+    sp: SurfacePoint,
 }
 
-/// Setting extarcted from polar coords.
+/// Setting extracted from polar coords.
+#[derive(Debug)]
 struct Settings {
     η: f32,
     ξ1: f32,
@@ -62,7 +63,7 @@ impl Display for FibreBuildError {
 impl Fibre {
     /// Create a new fibre.
     ///
-    /// alpha must be equal to or contained by 0..4PI.
+    /// Alpha must be equal to or contained by 0..=4PI.
     ///
     /// NB. This will only be checked in debug builds.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
@@ -80,7 +81,7 @@ impl Fibre {
         debug_assert!(*alpha.end() >= 0_f32, "alpha_end {:#?}", alpha.end());
         debug_assert!(*alpha.end() <= ALPHA_MAX, "alpha_end {:#?}", alpha.end());
 
-        Self { sp, alpha }
+        Self { alpha, sp }
     }
 
     /// RAW Uniformly space in domain space results in highly un-evenly spaced output.
@@ -113,28 +114,44 @@ impl Fibre {
         let lut = resample_fibre::<4096, N_POINTS_PER_LOOP>(self.projected_fibre(), &self.alpha);
 
         let path_length = lut[N_POINTS_PER_LOOP - 1].1;
-        let step = path_length / N_POINTS_PER_LOOP as f32;
+        let step = path_length / (N_POINTS_PER_LOOP - 1) as f32;
 
         let fibre = self.projected_fibre();
 
         let mut last_match = 0_usize;
+
         (0..N_POINTS_PER_LOOP)
             .map(|i| {
                 // a
                 let dist_threshold = i as f32 * step;
 
                 // Preformance: use last_match to search through a progressively smaller section of the LUT.
-                let (match_index, (alpha, _dist)) = lut[last_match..]
-                    .iter()
-                    .enumerate()
-                    .find(move |(_i, (_alpha, d))| {
-                        // Threshold distance.
-                        *d >= dist_threshold
-                    })
-                    .unwrap_or((0_usize, &(f32::NAN, f32::NAN)));
+                let (match_index, (alpha, _dist)) =
+                    match lut[last_match..]
+                        .iter()
+                        .enumerate()
+                        .find(move |(_i, (_alpha, d))| {
+                            // Threshold distance.
+                            *d >= dist_threshold
+                        }) {
+                        Some((index, (a, d))) => (index, (*a, *d)),
+                        None => {
+                            // Not found! ... Re-examine endpoint with a different test
+                            // if the dist is slightly under threshold still match.
+                            if let Some((last_alpha, last_dist)) = lut.last() {
+                                if (last_dist - dist_threshold).abs() < 1e-2 {
+                                    (lut.len(), (*last_alpha, *last_dist))
+                                } else {
+                                    (0usize, (f32::NAN, f32::NAN))
+                                }
+                            } else {
+                                (0usize, (f32::NAN, f32::NAN))
+                            }
+                        }
+                    };
 
                 last_match = match_index;
-                (fibre(*alpha), alpha)
+                (fibre(alpha), alpha)
             })
             .unzip()
     }
@@ -235,8 +252,12 @@ mod tests {
         let (points, alphas) = fibre.build_uniform::<1000>();
 
         // Check alphas
+        //
+        // Start to zero.
         let expecting_zero = (alphas[0] - 0_f32).abs();
         assert!(expecting_zero < 1e-6);
+
+        // End at 4PI.
         let alpha_last = alphas.last().unwrap();
         // 1 part in 100 ... this seems loose.
         assert!(
