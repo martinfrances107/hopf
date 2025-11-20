@@ -33,6 +33,7 @@ fn main() {
             Update,
             mouse_down_system.run_if(input_pressed(MouseButton::Left)),
         )
+        .add_systems(Update, close_on_esc)
         .run();
 }
 
@@ -323,6 +324,22 @@ fn mouse_down_system(
                     println!();
                 }
             }
+        }
+    }
+}
+
+fn close_on_esc(
+    mut commands: Commands,
+    focused_windows: Query<(Entity, &Window)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for (window, focus) in focused_windows.iter() {
+        if !focus.focused {
+            continue;
+        }
+
+        if input.just_pressed(KeyCode::Escape) {
+            commands.entity(window).despawn();
         }
     }
 }
