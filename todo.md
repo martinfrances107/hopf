@@ -24,7 +24,6 @@ Fix issue with dial --
 
 [] - when hovering over indicator ball -- transition to brighter colors.
 
-
 [] - Bevy App user inputs 2 points to form lines
 
     - handles are defined as upside down triangle.
@@ -41,11 +40,6 @@ Fix issue with dial --
 [] - Fix smooth shading.
      when I go smooth why does the surface appear blemish
      is it becasue the points indexing is bad?
-
-[] -Build a benchmark
-    Newton Rahspson / Gradient descent is low.
-    Could use binary search with brackets
-    No path adjustment?
 
 [] - Bevy app what is need to make a bevy plugin
     plugin implements HopfMeshbuilder ( copied from SphereMeshBuilder)
