@@ -38,16 +38,6 @@ Fix issue with dial --
        then the mesh is updated.
     --
 
-
-[] - Fix broken mesh ( bevy ) start and end do not mesh.
-     point2ply - shows the spacing is ONLY almost always even.
-
-    HAVE STOP GAP FIX:
-
-   The temp fix is to change the number of points per loop
-    from 80 to 40. This hides the issue .. I need a general solution
-    ( with tests )
-
 [] - Fix smooth shading.
      when I go smooth why does the surface appear blemish
      is it becasue the points indexing is bad?
