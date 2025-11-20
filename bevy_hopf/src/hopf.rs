@@ -65,7 +65,7 @@ impl Default for Hopf {
 #[derive(Clone, Debug)]
 pub struct HopfMeshBuilder {
     /// Deduping mechanism.
-    pub vertex_store: HashMap<Vertex, u32>,
+    pub vertex_store: HashMap<Vertex, u16>,
     /// [1, 2, 3, 4, 5, 6] implies two triangles (1,2,3) and (4,5,6)
     pub triangle_store: Indices,
     /// Per vertex UVs.
@@ -75,13 +75,13 @@ pub struct HopfMeshBuilder {
 
     // The last [`Hopf`] shape constructed.
     hopf: Hopf,
-    next_index: u32,
+    next_index: u16,
 }
 
 impl HopfMeshBuilder {
     /// If the point has been seen before it will be deduplicated
     /// and a exiting vertex buffer index will be returned.
-    pub fn add_vertex(&mut self, p: &Vertex) -> u32 {
+    pub fn add_vertex(&mut self, p: &Vertex) -> u16 {
         if let Some(index) = self.vertex_store.get(p) {
             *index
         } else {
@@ -251,7 +251,7 @@ impl Meshable for Hopf {
             hopf: self.clone(),
             next_index: 0,
             vertex_store: HashMap::default(),
-            triangle_store: Indices::U32(Vec::new()),
+            triangle_store: Indices::U16(Vec::new()),
             uv_store: Vec::new(),
             n_tries: 2000,
         }
