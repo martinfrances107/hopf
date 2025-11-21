@@ -23,12 +23,12 @@ static LON_RANGE: RangeInclusive<f32> = 0_f32..=core::f32::consts::TAU;
 /// A fibre is a point on s(2)
 /// where alpha extends the fibre from the base space.
 #[derive(Debug)]
-pub struct Fibre {
+pub struct Fibre<'a> {
     // alpha [0..=4PI] is the domain of the fibre.
     //
     // NB alpha=0 is the same point as alpha=4PI.
     // This duplication is useful when defining a closed path.
-    alpha: RangeInclusive<f32>,
+    alpha: &'a RangeInclusive<f32>,
 
     sp: SurfacePoint,
 }
@@ -60,14 +60,14 @@ impl Display for FibreBuildError {
     }
 }
 
-impl Fibre {
+impl<'a> Fibre<'a> {
     /// Create a new fibre.
     ///
     /// Alpha must be equal to or contained by 0..=4PI.
     ///
     /// NB. This will only be checked in debug builds.
     #[must_use = "Not using the returned, is the same as doing nothing at all."]
-    pub fn new(sp: SurfacePoint, alpha: RangeInclusive<f32>) -> Self {
+    pub fn new(sp: SurfacePoint, alpha: &'a RangeInclusive<f32>) -> Self {
         debug_assert!(LAT_RANGE.contains(&sp.lat), "lat {:#?}", sp.lat);
         debug_assert!(LON_RANGE.contains(&sp.lon), "lon {:#?}", sp.lon);
 
@@ -217,12 +217,13 @@ mod tests {
     #[test]
     /// Due to the cycling nature of the fibre 0 and 4*PI are the same point.
     fn projected() {
+        let alpha = 0_f32..=F32_4PI;
         let fibre = Fibre::new(
             SurfacePoint {
                 lat: 5.0_f32.to_radians(),
                 lon: 5.0_f32.to_radians(),
             },
-            0_f32..=F32_4PI,
+            &alpha,
         );
 
         let fibre = fibre.projected_fibre();
@@ -241,12 +242,13 @@ mod tests {
     /// must be indetical ( or with a small error)
     #[test]
     fn lut() {
+        let alpha = 0_f32..=F32_4PI;
         let fibre = Fibre::new(
             SurfacePoint {
                 lat: 5.0_f32.to_radians(),
                 lon: 5.0_f32.to_radians(),
             },
-            0_f32..=F32_4PI,
+            &alpha,
         );
 
         let (points, alphas) = fibre.build_uniform::<1000>();

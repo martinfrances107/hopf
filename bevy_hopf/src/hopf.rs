@@ -158,29 +158,14 @@ impl HopfMeshBuilder {
             lines_end: line_end,
         })?;
 
-        let fibre_last = Fibre::new(sp_initial, 0_f32..=F32_4PI);
-
-        // let (mut points_last, _alphas) = fibre_last
-        //     .build(self.scale, N as u32, self.n_tries)
-        //     .map_err(|_| HopfMeshError::NRetriesExceeded {
-        //         n_tries: self.n_tries,
-        //         lat: initial_lat,
-        //         lon: initial_lon,
-        //     })?;
+        let alpha = 0_f32..=F32_4PI;
+        let fibre_last = Fibre::new(sp_initial, &alpha);
 
         let (mut points_last, _alphas) = fibre_last.build_uniform::<N_POINTS_PER_LOOP>();
 
         for sp in weave {
-            let fibre = Fibre::new(sp, 0_f32..=F32_4PI);
-
-            // let (points, _alphas) = fibre
-            //     .build(self.scale, self.hopf.n_points_per_loop, self.n_tries)
-            //     .map_err(|_| HopfMeshError::NRetriesExceeded {
-            //         n_tries: self.n_tries,
-            //         lat,
-            //         lon,
-            //     })?;
-            // debug_assert_eq!(points.len(), 80);
+            let alpha = 0_f32..=F32_4PI;
+            let fibre = Fibre::new(sp, &alpha);
 
             let (points, _alphas) = fibre.build_uniform::<N_POINTS_PER_LOOP>();
 

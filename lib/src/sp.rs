@@ -70,7 +70,6 @@ impl SurfacePoint {
 
     fn extract_surface_point(direction: Vec3) -> Self {
         let Vec3 { x, y, z } = direction;
-        println!("direction {direction:#?}");
         // hypotenu is 1.
         let lat = f32::asin(y);
         let lon = f32::atan2(-z, x);

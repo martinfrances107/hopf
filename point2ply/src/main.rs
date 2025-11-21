@@ -19,12 +19,13 @@ fn main() -> Result<(), Error> {
     let handle = stdout.lock();
     let mut writer = BufWriter::new(handle);
 
+    let alpha = 0_f32..=4.0 * core::f32::consts::PI;
     let fibre = Fibre::new(
         SurfacePoint {
             lat: 5.0_f32.to_radians(),
             lon: 5.0_f32.to_radians(),
         },
-        0_f32..=4.0 * core::f32::consts::PI,
+        &alpha,
     );
 
     let (points, _) = fibre.build_uniform::<20>();

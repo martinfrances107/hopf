@@ -41,8 +41,9 @@ fn main() -> Result<(), std::io::Error> {
     });
 
     let mut lines = vec![];
+    let alpha = 0_f32..=F32_4PI;
     for sp in seeds {
-        let fibre = hopf::fibre::Fibre::new(sp, 0_f32..=F32_4PI);
+        let fibre = hopf::fibre::Fibre::new(sp, &alpha);
 
         let (points, _) = fibre.build_uniform::<10>();
 
