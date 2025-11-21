@@ -105,9 +105,9 @@ impl HopfMeshBuilder {
         let i1 = self.add_vertex(p1);
         let i2 = self.add_vertex(p2);
         // Push the triangle ( anti-clockwise winding order ).
-        self.triangle_store.push(i0);
-        self.triangle_store.push(i1);
-        self.triangle_store.push(i2);
+        self.triangle_store.push(i0.into());
+        self.triangle_store.push(i1.into());
+        self.triangle_store.push(i2.into());
     }
 }
 
@@ -130,7 +130,7 @@ impl HopfMeshBuilder {
             // Unlike Wavefront OBJ files indexed start at zero
             next_index: 0,
             vertex_store: HashMap::default(),
-            triangle_store: Indices::U32(Vec::new()),
+            triangle_store: Indices::U16(Vec::new()),
             uv_store: Vec::new(),
             n_tries,
         }
