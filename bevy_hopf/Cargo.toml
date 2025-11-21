@@ -13,10 +13,10 @@ categories.workspace = true
 keywords.workspace = true
 
 [dependencies]
-bevy = "0.17.2"
-bevy_mesh = "0.17.2"
-bevy_asset = "0.17.2"
-bevy_picking = "0.17.2"
+bevy = "0.17.3"
+bevy_mesh = "0.17.3"
+bevy_asset = "0.17.3"
+bevy_picking = "0.17.3"
 bevy_mod_mesh_tools = { git = "https://github.com/DGriffin91/bevy_mod_mesh_tools.git", branch="main"}
 hopf = { path = "../lib" }
 thiserror = "2.0.16"
