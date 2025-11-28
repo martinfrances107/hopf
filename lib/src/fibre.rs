@@ -111,7 +111,7 @@ impl<'a> Fibre<'a> {
     /// TODO Could remove scaling. blender allows for a scaling at the obj level.
     #[must_use]
     pub fn build_uniform<const N_POINTS_PER_LOOP: usize>(&self) -> (Vec<Vertex>, Vec<f32>) {
-        let lut = resample_fibre::<4096, N_POINTS_PER_LOOP>(self.projected_fibre(), &self.alpha);
+        let lut = resample_fibre::<4096, N_POINTS_PER_LOOP>(self.projected_fibre(), self.alpha);
 
         let path_length = lut[N_POINTS_PER_LOOP - 1].1;
         let step = path_length / (N_POINTS_PER_LOOP - 1) as f32;

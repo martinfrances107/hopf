@@ -92,7 +92,7 @@ fn main() -> Result<(), std::io::Error> {
             //
             // Given a quad ( points 0, 1, 2, 3 )
             // form triangles (0,1,3) and (1,2,3)
-            // add triangles will de-dupe points and compute normals.
+            // adding triangles will de-dupe points and compute normals.
             for i in 1..NUM_POINTS_PER_LOOP as usize {
                 let i0 = obj.add_vertex(&points_last[i - 1]);
                 let i1 = obj.add_vertex(&points_last[i]);
