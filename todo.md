@@ -1,6 +1,5 @@
 # TODO
 
-
 Fix issue with dial -- 
   color with alpha should be used for decal 
   -- red channel used for height input into displacement node 
@@ -40,9 +39,5 @@ Fix issue with dial --
 [] - Fix smooth shading.
      when I go smooth why does the surface appear blemish
      is it becasue the points indexing is bad?
-
-[] - Bevy app what is need to make a bevy plugin
-    plugin implements HopfMeshbuilder ( copied from SphereMeshBuilder)
-    .compute_mesh(u, v ) -> Result<Mesh,_> -- yields a Mesh object
 
 [] - Blender renders need to be redone, now that the fibre projection has been corrected.
