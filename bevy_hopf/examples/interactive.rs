@@ -22,6 +22,8 @@ use bevy_picking::Pickable;
 
 use hopf::sp::SurfacePoint;
 
+static Y_HEIGHT: f32 = 3.0_f32;
+
 fn main() {
     App::new()
         // MeshPickingPlugin is not a default plugin
@@ -61,6 +63,7 @@ fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     // Materials.
     let white_matl = materials.add(Color::WHITE);
@@ -122,7 +125,7 @@ fn setup_scene(
     // Origin of the gizmo
     let origin = Vec3::new(
         -SHAPES_X_EXTENT / 2. + i as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
-        3.0,
+        Y_HEIGHT,
         Z_EXTENT / 2.,
     );
 
@@ -170,7 +173,18 @@ fn setup_scene(
         .observe(update_material_on::<Pointer<Press>>(pressed_matl.clone()))
         .observe(update_material_on::<Pointer<Release>>(hover_matl.clone()))
         .observe(rotate_on_drag);
-    // .observe(rotate_handle_on_drag);
+
+    let compass_origin = Vec3::new(
+        -SHAPES_X_EXTENT / 2. + i as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
+        0.0,
+        Z_EXTENT / 2.,
+    );
+
+    commands
+        .spawn(SceneRoot(asset_server.load(
+            GltfAssetLabel::Scene(0).from_asset("models/FlatCompass.gltf"),
+        )))
+        .insert(Transform::from_translation(compass_origin));
 
     let line_start = SurfacePoint {
         lat: 10_f32.to_radians(),
@@ -198,7 +212,7 @@ fn setup_scene(
             MeshMaterial3d(hopf_white_matl.clone()),
             Transform::from_xyz(
                 -SHAPES_X_EXTENT / 2. + i as f32 / (2 - 1) as f32 * SHAPES_X_EXTENT,
-                3.0,
+                Y_HEIGHT,
                 Z_EXTENT / 2.,
             )
             .with_scale(Vec3::splat(0.8))
